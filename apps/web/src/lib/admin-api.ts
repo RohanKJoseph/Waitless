@@ -69,3 +69,69 @@ export async function deleteDoctor(id: string) {
   const res = await api.delete<{ data: { doctor: Doctor } }>(`/doctors/${id}`);
   return res.data.doctor;
 }
+
+export interface DoctorSchedule {
+  id: string;
+  doctorId: string;
+  dayOfWeek: number;
+  startMinute: number;
+  endMinute: number;
+  slotMinutes: number;
+  isActive: boolean;
+}
+
+export interface ScheduleException {
+  id: string;
+  doctorId: string;
+  date: string;
+  isClosed: boolean;
+  startMinute: number | null;
+  endMinute: number | null;
+  note: string | null;
+}
+
+export interface AvailabilitySlot {
+  start: string;
+  end: string;
+  label: string;
+  rangeLabel: string;
+  startMinute: number;
+  endMinute: number;
+  isBooked: boolean;
+  isPast: boolean;
+}
+
+export async function listSchedules(doctorId: string): Promise<DoctorSchedule[]> {
+  const res = await api.get<{ data: { schedules: DoctorSchedule[] } }>(`/doctors/${doctorId}/schedules`);
+  return res.data.schedules;
+}
+
+export async function createSchedule(doctorId: string, input: { dayOfWeek: number; startMinute: number; endMinute: number; slotMinutes: number }) {
+  const res = await api.post<{ data: { schedule: DoctorSchedule } }>(`/doctors/${doctorId}/schedules`, input);
+  return res.data.schedule;
+}
+
+export async function deleteSchedule(doctorId: string, scheduleId: string) {
+  await api.delete(`/doctors/${doctorId}/schedules/${scheduleId}`);
+}
+
+export async function listExceptions(doctorId: string): Promise<ScheduleException[]> {
+  const res = await api.get<{ data: { exceptions: ScheduleException[] } }>(`/doctors/${doctorId}/exceptions`);
+  return res.data.exceptions;
+}
+
+export async function upsertException(doctorId: string, input: { date: string; isClosed: boolean; startMinute?: number | null; endMinute?: number | null; note?: string | null }) {
+  const res = await api.put<{ data: { exception: ScheduleException } }>(`/doctors/${doctorId}/exceptions`, input);
+  return res.data.exception;
+}
+
+export async function deleteException(doctorId: string, exceptionId: string) {
+  await api.delete(`/doctors/${doctorId}/exceptions/${exceptionId}`);
+}
+
+export async function getAvailability(doctorId: string, date: string) {
+  const res = await api.get<{ data: { date: string; timezone: string; isOnDuty: boolean; slots: AvailabilitySlot[]; exception: { isClosed: boolean; note: string | null } | null } }>(
+    `/doctors/${doctorId}/availability?date=${encodeURIComponent(date)}`,
+  );
+  return res.data;
+}

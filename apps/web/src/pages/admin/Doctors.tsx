@@ -1,14 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, Power, Stethoscope } from "lucide-react";
+import { CalendarClock, Pencil, Plus, Power, Stethoscope, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
 import {
   createDoctor,
+  createSchedule,
   deleteDoctor,
+  deleteException,
+  deleteSchedule,
+  getAvailability,
   listDepartments,
   listDoctors,
+  listExceptions,
+  listSchedules,
   updateDoctor,
+  upsertException,
   type Department,
   type Doctor,
 } from "@/lib/admin-api";
@@ -22,6 +29,130 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function minutesToHHmm(m: number) {
+  const hh = String(Math.floor(m / 60)).padStart(2, "0");
+  const mm = String(m % 60).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+function hhmmToMinutes(v: string) {
+  const [h, m] = v.split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+function ScheduleManager({ doctor }: { doctor: Doctor }) {
+  const qc = useQueryClient();
+  const [dayOfWeek, setDayOfWeek] = useState("1");
+  const [start, setStart] = useState("09:00");
+  const [end, setEnd] = useState("13:00");
+  const [slotMinutes, setSlotMinutes] = useState("15");
+  const [exDate, setExDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [exClosed, setExClosed] = useState(true);
+  const [exNote, setExNote] = useState("");
+  const [previewDate, setPreviewDate] = useState(() => new Date().toISOString().slice(0, 10));
+
+  const schedulesQ = useQuery({ queryKey: ["doctor-schedules", doctor.id], queryFn: () => listSchedules(doctor.id) });
+  const exceptionsQ = useQuery({ queryKey: ["doctor-exceptions", doctor.id], queryFn: () => listExceptions(doctor.id) });
+  const availabilityQ = useQuery({ queryKey: ["doctor-availability", doctor.id, previewDate], queryFn: () => getAvailability(doctor.id, previewDate) });
+
+  const createScheduleMut = useMutation({
+    mutationFn: () => createSchedule(doctor.id, { dayOfWeek: Number(dayOfWeek), startMinute: hhmmToMinutes(start), endMinute: hhmmToMinutes(end), slotMinutes: Number(slotMinutes) }),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ["doctor-schedules", doctor.id] }); void qc.invalidateQueries({ queryKey: ["doctor-availability", doctor.id] }); toast.success("Schedule window added"); },
+    onError: (e) => toast.error(e instanceof ApiError ? e.message : "Failed to add schedule"),
+  });
+  const deleteScheduleMut = useMutation({
+    mutationFn: (id: string) => deleteSchedule(doctor.id, id),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ["doctor-schedules", doctor.id] }); void qc.invalidateQueries({ queryKey: ["doctor-availability", doctor.id] }); toast.success("Schedule removed"); },
+    onError: (e) => toast.error(e instanceof ApiError ? e.message : "Failed to remove schedule"),
+  });
+  const upsertExMut = useMutation({
+    mutationFn: () => upsertException(doctor.id, { date: exDate, isClosed: exClosed, note: exNote || null }),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ["doctor-exceptions", doctor.id] }); void qc.invalidateQueries({ queryKey: ["doctor-availability", doctor.id] }); toast.success("Exception saved"); },
+    onError: (e) => toast.error(e instanceof ApiError ? e.message : "Failed to save exception"),
+  });
+  const deleteExMut = useMutation({
+    mutationFn: (id: string) => deleteException(doctor.id, id),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ["doctor-exceptions", doctor.id] }); void qc.invalidateQueries({ queryKey: ["doctor-availability", doctor.id] }); toast.success("Exception removed"); },
+    onError: (e) => toast.error(e instanceof ApiError ? e.message : "Failed to remove exception"),
+  });
+
+  return (
+    <Tabs defaultValue="weekly" className="w-full">
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="weekly">Weekly</TabsTrigger>
+        <TabsTrigger value="exceptions">Exceptions</TabsTrigger>
+        <TabsTrigger value="preview">Availability</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="weekly" className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-4">
+          <div className="space-y-1.5"><Label>Day</Label>
+            <Select value={dayOfWeek} onValueChange={setDayOfWeek}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>
+              {DAYS.map((d, i) => <SelectItem key={i} value={String(i)}>{d}</SelectItem>)}
+            </SelectContent></Select>
+          </div>
+          <div className="space-y-1.5"><Label>Start</Label><Input type="time" value={start} onChange={(e) => setStart(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>End</Label><Input type="time" value={end} onChange={(e) => setEnd(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Slot (min)</Label><Input type="number" min={5} max={120} value={slotMinutes} onChange={(e) => setSlotMinutes(e.target.value)} /></div>
+        </div>
+        <Button size="sm" onClick={() => createScheduleMut.mutate()} disabled={createScheduleMut.isPending}><Plus className="size-4" />Add window</Button>
+        <div className="space-y-2">
+          {(schedulesQ.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">No weekly windows yet.</p> : (schedulesQ.data ?? []).map((s) => (
+            <div key={s.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
+              <div>
+                <span className="font-medium">{DAYS[s.dayOfWeek]}</span> {minutesToHHmm(s.startMinute)}–{minutesToHHmm(s.endMinute)} <span className="text-muted-foreground">· {s.slotMinutes} min slots</span>
+                {!s.isActive && <Badge variant="muted" className="ml-2">Inactive</Badge>}
+              </div>
+              <Button size="icon-sm" variant="ghost" onClick={() => deleteScheduleMut.mutate(s.id)}><Trash2 className="size-4" /></Button>
+            </div>
+          ))}
+        </div>
+      </TabsContent>
+
+      <TabsContent value="exceptions" className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="space-y-1.5"><Label>Date</Label><Input type="date" value={exDate} onChange={(e) => setExDate(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Type</Label>
+            <Select value={exClosed ? "closed" : "open"} onValueChange={(v) => setExClosed(v === "closed")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>
+              <SelectItem value="closed">Closed (holiday/off)</SelectItem>
+              <SelectItem value="open">Custom hours (basic)</SelectItem>
+            </SelectContent></Select>
+          </div>
+          <div className="space-y-1.5"><Label>Note</Label><Input value={exNote} onChange={(e) => setExNote(e.target.value)} placeholder="Holiday / leave" /></div>
+        </div>
+        <Button size="sm" onClick={() => upsertExMut.mutate()} disabled={upsertExMut.isPending}><Plus className="size-4" />Save exception</Button>
+        <div className="space-y-2">
+          {(exceptionsQ.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">No exceptions.</p> : (exceptionsQ.data ?? []).map((ex) => (
+            <div key={ex.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
+              <div><span className="font-medium">{String(ex.date).slice(0, 10)}</span> · {ex.isClosed ? "Closed" : "Custom hours"} {ex.note ? <span className="text-muted-foreground">— {ex.note}</span> : null}</div>
+              <Button size="icon-sm" variant="ghost" onClick={() => deleteExMut.mutate(ex.id)}><Trash2 className="size-4" /></Button>
+            </div>
+          ))}
+        </div>
+      </TabsContent>
+
+      <TabsContent value="preview" className="space-y-4">
+        <div className="flex items-end gap-3">
+          <div className="space-y-1.5"><Label>Date</Label><Input type="date" value={previewDate} onChange={(e) => setPreviewDate(e.target.value)} /></div>
+          {availabilityQ.data && <Badge variant={availabilityQ.data.isOnDuty ? "success" : "muted"}>{availabilityQ.data.isOnDuty ? "On duty" : "Off / no slots"}</Badge>}
+        </div>
+        {availabilityQ.isLoading ? <p className="text-sm text-muted-foreground">Loading availability…</p> : (
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {(availabilityQ.data?.slots ?? []).length === 0 ? <p className="col-span-full text-sm text-muted-foreground">No slots for this date.</p> : (availabilityQ.data?.slots ?? []).map((slot) => (
+              <div key={slot.start} className={`rounded-md border px-2 py-1.5 text-xs ${slot.isBooked ? "bg-muted text-muted-foreground" : slot.isPast ? "opacity-60" : "bg-success/10 text-success-foreground"}`}>
+                <div className="font-medium">{slot.label}</div>
+                <div>{slot.isBooked ? "Booked" : slot.isPast ? "Past" : "Open"}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </TabsContent>
+    </Tabs>
+  );
+}
 
 function DoctorForm({
   initial,
@@ -83,6 +214,7 @@ export function DoctorsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Doctor | null>(null);
+  const [scheduleDoctor, setScheduleDoctor] = useState<Doctor | null>(null);
   const [query, setQuery] = useState("");
 
   const { data: deptData = [] } = useQuery({ queryKey: ["departments", "admin"], queryFn: () => listDepartments(true) });
@@ -186,6 +318,7 @@ export function DoctorsPage() {
                     <TableCell><Badge variant={doc.isActive ? "success" : "muted"}>{doc.isActive ? "Active" : "Inactive"}</Badge></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        <Button size="sm" variant="secondary" onClick={() => setScheduleDoctor(doc)}><CalendarClock className="size-3.5" />Schedule</Button>
                         <Button size="sm" variant="outline" onClick={() => setEditing(doc)}><Pencil className="size-3.5" />Edit</Button>
                         <Button size="sm" variant={doc.isActive ? "ghost" : "secondary"} disabled={toggleMut.isPending} onClick={() => toggleMut.mutate(doc)}>
                           <Power className="size-3.5" />{doc.isActive ? "Deactivate" : "Activate"}
@@ -214,6 +347,16 @@ export function DoctorsPage() {
               onSubmit={async (values) => { await updateMut.mutateAsync({ id: editing.id, input: values }); }}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!scheduleDoctor} onOpenChange={(o) => !o && setScheduleDoctor(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Schedule — {scheduleDoctor?.fullName}</DialogTitle>
+            <DialogDescription>Manage weekly clinic windows, exceptions, and preview availability.</DialogDescription>
+          </DialogHeader>
+          {scheduleDoctor && <ScheduleManager doctor={scheduleDoctor} />}
         </DialogContent>
       </Dialog>
     </div>
