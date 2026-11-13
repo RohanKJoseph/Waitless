@@ -53,14 +53,14 @@ Legend: `[ ]` not started Â· `[~]` in progress (write it as `[~]`) Â· `[x]` 
 | 3 | Auth (admin + patient) & RBAC | `[ ]` | 2 days | â€” | â€” |
 | 4 | Hospital management (departments, doctors, schedules) | `[x]` | 3â€“4 days | 2026-11-13 | 2026-11-13 |
 | 5 | Appointment booking (QR + remote) | `[~]` | 4 days | 2026-11-13 | — |
-| 6 | Queue engine | `[ ]` | 5 days | â€” | â€” |
+| 6 | Queue engine | `[~]` | 5 days | 2026-11-13 | — |
 | 7 | Real-time layer & notifications | `[ ]` | 4 days | â€” | â€” |
 | 8 | Appointment swap | `[ ]` | 2â€“3 days | â€” | â€” |
 | 9 | Hardware integration (NXP FRDM-MCXN236) | `[ ]` | 5 days | â€” | â€” |
 | 10 | Admin analytics, hardening, demo polish | `[ ]` | 3â€“4 days | â€” | â€” |
 | 11 | Future scope (RAG chatbot, multi-tenancy) | `[ ]` | â€” | â€” | â€” |
 
-**Overall progress:** 3 / 11 phases complete, 1 in progress (Phase 5) · ~68 / 205 tasks (approx, see phase checklists)
+**Overall progress:** 3 / 11 phases complete, 2 in progress (Phases 5-6) · ~78 / 205 tasks (approx, see phase checklists)
 
 ---
 
@@ -685,3 +685,4 @@ A phase is `[x]` only when **all** of these are true:
 | 2026-11-13 | 3 | Auth/RBAC baseline implemented: staff login/refresh/logout/me, patient mock name+mobile session, guards/middleware, web auth context + route guards + wired login/start/logout, RBAC matrix doc. Committed and pushed incrementally. |
 | 2026-11-13 | 4 | Hospital management complete (practical): department/doctor/schedule+availability APIs, admin management UIs, patient booking wired to live data/slots (submission pending Phase 5), shared-schema client validation and loading/empty-state polish. Committed and pushed incrementally. |
 | 2026-11-13 | 5 | Appointment booking in progress: core booking/walk-in/list/get/cancel/reschedule APIs with slot validation, conflict handling and per-day tokens; patient booking submission+token screen and My Visits; admin appointments list/filters/walk-in/cancel basics. QR flow and queue-integrated behaviors pending. |
+| 2026-11-13 | 6 | Queue engine in progress: queue day preparation, queue listing/stats/ETA basics, call/start/complete/skip/requeue APIs with audit/state transitions and position recompute; admin queue management and patient queue status UIs wired with polling. Grace jobs, advanced ETA/recalc hooks, and realtime pending. |
