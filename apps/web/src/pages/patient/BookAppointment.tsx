@@ -1,7 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
-import { CalendarPlus, Check, ChevronRight, Clock3, Stethoscope, Users } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CalendarPlus, Check, ChevronRight, Clock3, Stethoscope, Ticket, Users } from "lucide-react";
 import { useMemo, useState } from "react";
-import { api } from "@/lib/api";
+import { Link } from "react-router-dom";
+import { toast } from "sonner";
+import { ApiError, api } from "@/lib/api";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,16 +15,19 @@ import { cn } from "@/lib/utils";
 type Department = { id: string; name: string; code: string; description: string | null; location: string | null; isActive: boolean; _count?: { doctors: number } };
 type Doctor = { id: string; fullName: string; designation: string; avgConsultMinutes: number; departmentId: string; isActive: boolean; room?: { code: string } | null; isOnDuty?: boolean; queueLength?: number; nextAvailableSlot?: { start: string; label: string } | null };
 type Slot = { start: string; end: string; label: string; rangeLabel: string; isBooked: boolean; isPast: boolean };
+type Appointment = { id: string; tokenNumber: number; serviceDay: string; slotStart: string; slotEnd: string; status: string; doctor: { fullName: string; room?: { code: string } | null; department?: { name: string } | null }; department: { name: string } };
 
-const STEPS = ["Department", "Doctor", "Time slot", "Confirm"] as const;
+const STEPS = ["Department", "Doctor", "Time slot", "Confirm", "Booked"] as const;
 
 export function BookAppointmentPage() {
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const qc = useQueryClient();
   const [step, setStep] = useState(0);
   const [departmentId, setDepartmentId] = useState<string | null>(null);
   const [doctorId, setDoctorId] = useState<string | null>(null);
   const [date, setDate] = useState(today);
   const [slotStart, setSlotStart] = useState<string | null>(null);
+  const [booked, setBooked] = useState<Appointment | null>(null);
 
   const deptsQ = useQuery({
     queryKey: ["departments", "public"],
@@ -39,6 +44,28 @@ export function BookAppointmentPage() {
     enabled: !!doctorId && step >= 2,
   });
 
+  const bookMut = useMutation({
+    mutationFn: async () => {
+      if (!doctorId || !slotStart) throw new Error("Missing selection");
+      return (await api.post<{ data: { appointment: Appointment } }>("/appointments", { doctorId, slotStart, source: "REMOTE" })).data.appointment;
+    },
+    onSuccess: async (appointment) => {
+      setBooked(appointment);
+      setStep(4);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["appointments"] }),
+        qc.invalidateQueries({ queryKey: ["availability", doctorId, date] }),
+        qc.invalidateQueries({ queryKey: ["doctors", "public"] }),
+      ]);
+      toast.success("Appointment booked");
+    },
+    onError: (err) => {
+      const msg = err instanceof ApiError ? err.message : "Could not book appointment";
+      toast.error(msg);
+      if (doctorId) void qc.invalidateQueries({ queryKey: ["availability", doctorId, date] });
+    },
+  });
+
   const selectedDept = (deptsQ.data ?? []).find((d) => d.id === departmentId);
   const selectedDoctor = (doctorsQ.data ?? []).find((d) => d.id === doctorId);
   const selectedSlot = (availabilityQ.data?.slots ?? []).find((s) => s.start === slotStart);
@@ -47,6 +74,7 @@ export function BookAppointmentPage() {
     if (step === 0) return !!departmentId;
     if (step === 1) return !!doctorId;
     if (step === 2) return !!slotStart;
+    if (step === 3) return !!slotStart && !!doctorId;
     return false;
   }
 
@@ -54,7 +82,7 @@ export function BookAppointmentPage() {
     <div className="space-y-6">
       <PageHeader
         title="Book an appointment"
-        description="Choose a department, pick your doctor and reserve a slot. Booking confirmation is enabled in the next step."
+        description="Choose a department, pick your doctor and reserve a slot."
       />
 
       <ol className="flex items-center gap-2 overflow-x-auto pb-1">
@@ -62,7 +90,7 @@ export function BookAppointmentPage() {
           <li key={s} className="flex shrink-0 items-center gap-2">
             <button
               type="button"
-              onClick={() => index < step && setStep(index)}
+              onClick={() => index < step && step < 4 && setStep(index)}
               className={cn(
                 "flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium",
                 index === step ? "border-primary/30 bg-accent text-accent-foreground" : index < step ? "text-foreground" : "text-muted-foreground",
@@ -85,10 +113,11 @@ export function BookAppointmentPage() {
                 {step === 0 && "Select the clinical department for your visit."}
                 {step === 1 && "Choose a doctor. Queue and next-slot info is shown for the selected date."}
                 {step === 2 && "Pick an available time slot."}
-                {step === 3 && "Review details. Final booking submission is wired in Phase 5."}
+                {step === 3 && "Review details and confirm your booking."}
+                {step === 4 && "Your appointment is booked. Keep your token handy."}
               </CardDescription>
             </div>
-            {step < 3 ? <Badge variant="info">Live data</Badge> : <Badge variant="warning">Booking next</Badge>}
+            {step < 3 ? <Badge variant="info">Live data</Badge> : step === 3 ? <Badge variant="warning">Confirm</Badge> : <Badge variant="success">Booked</Badge>}
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -197,23 +226,41 @@ export function BookAppointmentPage() {
               </div>
               <div className="rounded-xl border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
                 <p className="font-medium text-foreground flex items-center gap-2"><Check className="size-4 text-success" /> Ready to book</p>
-                <p className="mt-1">Live department/doctor/slot selection is wired. Booking submission (`POST /appointments`) and token generation will be enabled in Phase 5.</p>
+                <p className="mt-1">Confirm to reserve this slot and receive your token number.</p>
               </div>
             </div>
           )}
 
-          <div className="flex items-center justify-between">
-            <Button variant="outline" disabled={step === 0} onClick={() => setStep((s) => Math.max(0, s - 1))}>Back</Button>
-            {step < 3 ? (
-              <Button disabled={!canContinue()} onClick={() => setStep((s) => s + 1)}>
-                Continue <ChevronRight className="size-4" />
-              </Button>
-            ) : (
-              <Button disabled>
-                <CalendarPlus className="size-4" />Confirm booking (Phase 5)
-              </Button>
-            )}
-          </div>
+          {step === 4 && booked && (
+            <div className="space-y-4">
+              <div className="rounded-xl border bg-emerald-50/50 p-6 text-center dark:bg-emerald-950/20">
+                <div className="mx-auto mb-3 grid size-12 place-items-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"><Ticket className="size-6" /></div>
+                <p className="text-sm text-muted-foreground">Your token</p>
+                <p className="text-4xl font-semibold tracking-tight">#{booked.tokenNumber}</p>
+                <p className="mt-2 text-sm font-medium">{booked.doctor.fullName}</p>
+                <p className="text-xs text-muted-foreground">{booked.department?.name ?? booked.doctor.department?.name} · {booked.serviceDay} · {new Date(booked.slotStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}{booked.doctor.room?.code ? ` · Room ${booked.doctor.room.code}` : ""}</p>
+              </div>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button asChild variant="outline"><Link to="/patient/appointments">View my visits</Link></Button>
+                <Button asChild><Link to="/patient/queue">Track queue</Link></Button>
+              </div>
+            </div>
+          )}
+
+          {step < 4 && (
+            <div className="flex items-center justify-between">
+              <Button variant="outline" disabled={step === 0 || bookMut.isPending} onClick={() => setStep((s) => Math.max(0, s - 1))}>Back</Button>
+              {step < 3 ? (
+                <Button disabled={!canContinue()} onClick={() => setStep((s) => s + 1)}>
+                  Continue <ChevronRight className="size-4" />
+                </Button>
+              ) : (
+                <Button disabled={!canContinue() || bookMut.isPending} onClick={() => bookMut.mutate()}>
+                  <CalendarPlus className="size-4" />{bookMut.isPending ? "Booking…" : "Confirm booking"}
+                </Button>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,4 +1,4 @@
-# Waitless — Implementation Plan & Progress Tracker
+﻿# Waitless â€” Implementation Plan & Progress Tracker
 
 Smart hospital appointment, queue and notification platform.
 
@@ -13,11 +13,11 @@ Smart hospital appointment, queue and notification platform.
 
 1. Work top-to-bottom. Phases are ordered by dependency, not by importance.
 2. Every task is a checkbox. Tick it **only** when its "done when" condition is verifiably true.
-3. Keep the **Status Board** (section 2) up to date — that is the single source of truth for progress.
+3. Keep the **Status Board** (section 2) up to date â€” that is the single source of truth for progress.
 4. Add a line to **Change Log** (section 14) whenever a phase is completed or a decision changes.
 5. Never start a phase before the previous phase's exit criteria are green, except for explicitly marked "parallel-safe" tasks.
 
-Legend: `[ ]` not started · `[~]` in progress (write it as `[~]`) · `[x]` done · `[!]` blocked (add a note)
+Legend: `[ ]` not started Â· `[~]` in progress (write it as `[~]`) Â· `[x]` done Â· `[!]` blocked (add a note)
 
 ---
 
@@ -48,19 +48,19 @@ Legend: `[ ]` not started · `[~]` in progress (write it as `[~]`) · `[x]` done
 
 | # | Phase | Status | Est. effort | Started | Completed |
 |---|---|---|---|---|---|
-| 1 | Foundation & tooling | `[x]` | 2–3 days | 2026-11-13 | 2026-11-13 |
+| 1 | Foundation & tooling | `[x]` | 2â€“3 days | 2026-11-13 | 2026-11-13 |
 | 2 | Database & domain model | `[x]` | 2 days | 2026-11-13 | 2026-11-13 |
-| 3 | Auth (admin + patient) & RBAC | `[ ]` | 2 days | — | — |
-| 4 | Hospital management (departments, doctors, schedules) | `[x]` | 3–4 days | 2026-11-13 | 2026-11-13 |
-| 5 | Appointment booking (QR + remote) | `[ ]` | 4 days | — | — |
-| 6 | Queue engine | `[ ]` | 5 days | — | — |
-| 7 | Real-time layer & notifications | `[ ]` | 4 days | — | — |
-| 8 | Appointment swap | `[ ]` | 2–3 days | — | — |
-| 9 | Hardware integration (NXP FRDM-MCXN236) | `[ ]` | 5 days | — | — |
-| 10 | Admin analytics, hardening, demo polish | `[ ]` | 3–4 days | — | — |
-| 11 | Future scope (RAG chatbot, multi-tenancy) | `[ ]` | — | — | — |
+| 3 | Auth (admin + patient) & RBAC | `[ ]` | 2 days | â€” | â€” |
+| 4 | Hospital management (departments, doctors, schedules) | `[x]` | 3â€“4 days | 2026-11-13 | 2026-11-13 |
+| 5 | Appointment booking (QR + remote) | `[~]` | 4 days | 2026-11-13 | — |
+| 6 | Queue engine | `[ ]` | 5 days | â€” | â€” |
+| 7 | Real-time layer & notifications | `[ ]` | 4 days | â€” | â€” |
+| 8 | Appointment swap | `[ ]` | 2â€“3 days | â€” | â€” |
+| 9 | Hardware integration (NXP FRDM-MCXN236) | `[ ]` | 5 days | â€” | â€” |
+| 10 | Admin analytics, hardening, demo polish | `[ ]` | 3â€“4 days | â€” | â€” |
+| 11 | Future scope (RAG chatbot, multi-tenancy) | `[ ]` | â€” | â€” | â€” |
 
-**Overall progress:** 3 / 11 phases complete · ~58 / 205 tasks (approx, see phase checklists)
+**Overall progress:** 3 / 11 phases complete, 1 in progress (Phase 5) · ~68 / 205 tasks (approx, see phase checklists)
 
 ---
 
@@ -68,63 +68,63 @@ Legend: `[ ]` not started · `[~]` in progress (write it as `[~]`) · `[x]` done
 
 ```
 wait-less/
-├── apps/
-│   ├── api/                     # Express + TS
-│   │   ├── prisma/
-│   │   │   ├── schema.prisma
-│   │   │   ├── migrations/
-│   │   │   └── seed.ts
-│   │   └── src/
-│   │       ├── config/          # env, prisma client, redis, logger
-│   │       ├── middleware/      # auth, rbac, validate, error, rate-limit
-│   │       ├── modules/
-│   │       │   ├── auth/
-│   │       │   ├── patients/
-│   │       │   ├── admins/
-│   │       │   ├── departments/
-│   │       │   ├── doctors/
-│   │       │   ├── appointments/
-│   │       │   ├── queue/
-│   │       │   ├── notifications/
-│   │       │   ├── swaps/
-│   │       │   ├── hardware/
-│   │       │   ├── analytics/
-│   │       │   └── health/
-│   │       ├── jobs/            # bullmq workers + schedulers
-│   │       ├── sockets/         # io server, rooms, emitters
-│   │       ├── integrations/    # fcm, mqtt, sms(adapter), qr
-│   │       ├── utils/           # time, tokens, errors, pagination
-│   │       ├── app.ts
-│   │       └── server.ts
-│   └── web/                     # React + Vite + Tailwind + shadcn
-│       └── src/
-│           ├── components/ (ui/, patient/, admin/, shared/)
-│           ├── layouts/ (PatientLayout, AdminLayout, AuthLayout)
-│           ├── pages/
-│           │   ├── public/      # Landing, Login, Register, ScanBooking
-│           │   ├── patient/     # Home, Book, MyAppointments, QueueStatus, SwapRequests
-│           │   └── admin/       # Dashboard, Departments, Doctors, Appointments, Queue, Patients, Swaps, Settings
-│           ├── hooks/ services/ context/ routes/ lib/ types/
-├── packages/
-│   ├── shared/                  # zod schemas, DTOs, enums, constants, status machine labels
-│   └── config/                  # shared tsconfig / eslint / tailwind preset
-├── hardware/
-│   ├── firmware/                # NXP FRDM-MCXN236 (CMSIS/FreeRTOS scaffolding later)
-│   ├── simulator/               # node script publishing fake occupancy events
-│   └── docs/                    # wiring, topics, payload spec
-├── docs/                        # ADRs, api.md, state-machine.md, runbook.md
-├── docker-compose.yml           # postgres, redis, mosquitto, mailpit(optional)
-├── turbo.json
-├── pnpm-workspace.yaml
-├── package.json
-├── .env.example
-├── .gitignore
-└── README.md
+â”œâ”€â”€ apps/
+â”‚   â”œâ”€â”€ api/                     # Express + TS
+â”‚   â”‚   â”œâ”€â”€ prisma/
+â”‚   â”‚   â”‚   â”œâ”€â”€ schema.prisma
+â”‚   â”‚   â”‚   â”œâ”€â”€ migrations/
+â”‚   â”‚   â”‚   â””â”€â”€ seed.ts
+â”‚   â”‚   â””â”€â”€ src/
+â”‚   â”‚       â”œâ”€â”€ config/          # env, prisma client, redis, logger
+â”‚   â”‚       â”œâ”€â”€ middleware/      # auth, rbac, validate, error, rate-limit
+â”‚   â”‚       â”œâ”€â”€ modules/
+â”‚   â”‚       â”‚   â”œâ”€â”€ auth/
+â”‚   â”‚       â”‚   â”œâ”€â”€ patients/
+â”‚   â”‚       â”‚   â”œâ”€â”€ admins/
+â”‚   â”‚       â”‚   â”œâ”€â”€ departments/
+â”‚   â”‚       â”‚   â”œâ”€â”€ doctors/
+â”‚   â”‚       â”‚   â”œâ”€â”€ appointments/
+â”‚   â”‚       â”‚   â”œâ”€â”€ queue/
+â”‚   â”‚       â”‚   â”œâ”€â”€ notifications/
+â”‚   â”‚       â”‚   â”œâ”€â”€ swaps/
+â”‚   â”‚       â”‚   â”œâ”€â”€ hardware/
+â”‚   â”‚       â”‚   â”œâ”€â”€ analytics/
+â”‚   â”‚       â”‚   â””â”€â”€ health/
+â”‚   â”‚       â”œâ”€â”€ jobs/            # bullmq workers + schedulers
+â”‚   â”‚       â”œâ”€â”€ sockets/         # io server, rooms, emitters
+â”‚   â”‚       â”œâ”€â”€ integrations/    # fcm, mqtt, sms(adapter), qr
+â”‚   â”‚       â”œâ”€â”€ utils/           # time, tokens, errors, pagination
+â”‚   â”‚       â”œâ”€â”€ app.ts
+â”‚   â”‚       â””â”€â”€ server.ts
+â”‚   â””â”€â”€ web/                     # React + Vite + Tailwind + shadcn
+â”‚       â””â”€â”€ src/
+â”‚           â”œâ”€â”€ components/ (ui/, patient/, admin/, shared/)
+â”‚           â”œâ”€â”€ layouts/ (PatientLayout, AdminLayout, AuthLayout)
+â”‚           â”œâ”€â”€ pages/
+â”‚           â”‚   â”œâ”€â”€ public/      # Landing, Login, Register, ScanBooking
+â”‚           â”‚   â”œâ”€â”€ patient/     # Home, Book, MyAppointments, QueueStatus, SwapRequests
+â”‚           â”‚   â””â”€â”€ admin/       # Dashboard, Departments, Doctors, Appointments, Queue, Patients, Swaps, Settings
+â”‚           â”œâ”€â”€ hooks/ services/ context/ routes/ lib/ types/
+â”œâ”€â”€ packages/
+â”‚   â”œâ”€â”€ shared/                  # zod schemas, DTOs, enums, constants, status machine labels
+â”‚   â””â”€â”€ config/                  # shared tsconfig / eslint / tailwind preset
+â”œâ”€â”€ hardware/
+â”‚   â”œâ”€â”€ firmware/                # NXP FRDM-MCXN236 (CMSIS/FreeRTOS scaffolding later)
+â”‚   â”œâ”€â”€ simulator/               # node script publishing fake occupancy events
+â”‚   â””â”€â”€ docs/                    # wiring, topics, payload spec
+â”œâ”€â”€ docs/                        # ADRs, api.md, state-machine.md, runbook.md
+â”œâ”€â”€ docker-compose.yml           # postgres, redis, mosquitto, mailpit(optional)
+â”œâ”€â”€ turbo.json
+â”œâ”€â”€ pnpm-workspace.yaml
+â”œâ”€â”€ package.json
+â”œâ”€â”€ .env.example
+â”œâ”€â”€ .gitignore
+â””â”€â”€ README.md
 ```
 
 ---
 
-## 4. Phase 1 — Foundation & tooling
+## 4. Phase 1 â€” Foundation & tooling
 
 **Goal:** one command boots the whole stack; CI is green; nothing is implemented yet.
 
@@ -160,7 +160,7 @@ wait-less/
 - [x] shadcn-style components + `components.json`: button, input, card, dialog, select, table, badge, toast (sonner), tabs, label, skeleton, separator
 - [x] React Router with `PublicLayout`, `PatientLayout`, `AdminLayout`, placeholder pages (all patient/admin routes)
 - [x] TanStack Query provider + `lib/api.ts` fetch wrapper with error normalization
-- [x] Vite dev proxy `/api` → `http://localhost:4000` and `/socket.io`
+- [x] Vite dev proxy `/api` â†’ `http://localhost:4000` and `/socket.io`
 - [x] Theme tokens (clinical teal palette), favicon, metadata
 
 **Done when:** layouts/routes render; landing/admin pages show API status via TanStack Query hook.
@@ -175,9 +175,9 @@ wait-less/
 
 ---
 
-## 5. Phase 2 — Database & domain model
+## 5. Phase 2 â€” Database & domain model
 
-**Goal:** the schema is stable enough that Phases 3–8 never need destructive changes.
+**Goal:** the schema is stable enough that Phases 3â€“8 never need destructive changes.
 
 ### 2.1 Prisma setup
 - [x] `datasource db` + `generator client` (Prisma 6.19.3 pinned; root `.env` loaded via `apps/api/scripts/with-env.mjs`)
@@ -203,26 +203,26 @@ wait-less/
 ### 2.4 Domain layer
 - [x] State machine in `packages/shared/src/state-machine.ts` (`assertTransition`, `canTransition`, `canCancel`, `isTerminal`)
 - [x] Timezone/slot helpers in `packages/shared/src/time.ts` and `packages/shared/src/slots.ts`
-- [x] Unit tests for transitions, time, and slots — 42 tests passing in shared, 9 in api
+- [x] Unit tests for transitions, time, and slots â€” 42 tests passing in shared, 9 in api
 
 **Done when:** legal/illegal transitions and core time/slot behavior covered by tests.
 
 ---
 
-## 6. Phase 3 — Authentication & RBAC
+## 6. Phase 3 â€” Authentication & RBAC
 
 **Goal:** admin logs in with credentials; patient signs in with name + mobile; every route is protected by role.
 
 ### 3.1 Admin auth
-- [ ] `POST /api/v1/auth/login` — email/phone + password → access token (15 min) + refresh token (httpOnly cookie, 7 days)
+- [ ] `POST /api/v1/auth/login` â€” email/phone + password â†’ access token (15 min) + refresh token (httpOnly cookie, 7 days)
 - [ ] `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/me`
 - [ ] Argon2id password hashing; login rate limit (5/min/IP + per-account lockout)
 - [ ] Seed script creates first admin from `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`
 
-**Done when:** wrong password → 401 with generic message; 6th attempt within a minute → 429; refresh rotates the token and revokes the old hash.
+**Done when:** wrong password â†’ 401 with generic message; 6th attempt within a minute â†’ 429; refresh rotates the token and revokes the old hash.
 
 ### 3.2 Patient auth (no OTP)
-- [ ] `POST /api/v1/patients/session` — body `{ fullName, phone }` → finds-or-creates `User(role=PATIENT)` + `Patient`, sets `phoneVerified=false`, returns patient access token + profile
+- [ ] `POST /api/v1/patients/session` â€” body `{ fullName, phone }` â†’ finds-or-creates `User(role=PATIENT)` + `Patient`, sets `phoneVerified=false`, returns patient access token + profile
 - [ ] Phone normalization (E.164-ish, strip spaces/dashes, require 10 digits for IN) + zod validation
 - [ ] Same phone returns the same patient (no duplicates); name update allowed on subsequent sign-in
 - [ ] `PatientAuthProvider` interface with `mock` implementation; `sms-otp` stub throws `NotImplemented` with a code comment on where OTP lands
@@ -235,8 +235,8 @@ wait-less/
 - [ ] `authorize(...roles)` guard; `requirePatientSelf` guard for `:patientId` routes
 - [ ] Ownership rules for appointments/queue/swaps: patient may only read/act on own records
 - [ ] `validate(schema, 'body' | 'query' | 'params')` middleware backed by shared zod schemas
-- [ ] `POST /api/v1/staff/session`? → **not needed**; staff reuse admin login with `role=STAFF` and limited permissions (matrix in `docs/rbac.md`)
-- [ ] `docs/rbac.md`: matrix of endpoint × role
+- [ ] `POST /api/v1/staff/session`? â†’ **not needed**; staff reuse admin login with `role=STAFF` and limited permissions (matrix in `docs/rbac.md`)
+- [ ] `docs/rbac.md`: matrix of endpoint Ã— role
 
 **Done when:** an automated table-driven test hits every route with ADMIN, STAFF, PATIENT, and anonymous tokens and asserts 200/403/401 as specified in `docs/rbac.md`.
 
@@ -250,7 +250,7 @@ wait-less/
 
 ---
 
-## 7. Phase 4 — Hospital management
+## 7. Phase 4 â€” Hospital management
 
 **Goal:** admins can run the hospital's structure from the dashboard; patients see live doctor availability.
 
@@ -287,34 +287,34 @@ wait-less/
 
 ---
 
-## 8. Phase 5 — Appointment booking
+## 8. Phase 5 â€” Appointment booking
 
 **Goal:** a patient can book by QR scan or remote, get a token, and see it in "My appointments".
 
 ### 5.1 Booking API
-- [ ] `POST /api/v1/appointments` — body `{ doctorId, slotStart, source, patientId? }`
+- [ ] `POST /api/v1/appointments` â€” body `{ doctorId, slotStart, source, patientId? }`
 - [ ] Server-side re-validation: slot exists in schedule, not in the past, not already booked, doctor active, department active
-- [ ] Race safety: unique constraint on `(doctorId, slotStart)` + retry-on-conflict → 409 `SLOT_TAKEN`
+- [ ] Race safety: unique constraint on `(doctorId, slotStart)` + retry-on-conflict â†’ 409 `SLOT_TAKEN`
 - [ ] Token number assigned inside the same transaction (per doctor per day sequence, gap-free enough for a queue)
 - [ ] `source=WALK_IN` allowed only for STAFF/ADMIN
 - [ ] `GET /api/v1/appointments` (role-scoped list, filters: date, status, doctorId, patientId, pagination)
 - [ ] `GET /api/v1/appointments/:id` (with doctor, department, queue position, ETA)
-- [ ] `PATCH /api/v1/appointments/:id/cancel` — allowed until `CALLED`; frees slot + renumbers queue positions
-- [ ] `PATCH /api/v1/appointments/:id/reschedule` — admin/staff, same rules as create
+- [ ] `PATCH /api/v1/appointments/:id/cancel` â€” allowed until `CALLED`; frees slot + renumbers queue positions
+- [ ] `PATCH /api/v1/appointments/:id/reschedule` â€” admin/staff, same rules as create
 - [ ] Booking confirmation creates a `Notification` (BOOKING_CONFIRMED) and queues the 30-min reminder
 
 **Done when:** two parallel requests for the same slot yield exactly one 201 and one 409; cancel restores slot availability; every booking has a unique token per doctor/day.
 
 ### 5.2 QR flow
-- [ ] `GET /api/v1/qr/hospital` → signed payload `{ v: 1, hid, ts, sig }` (HMAC with `QR_SIGNING_SECRET`) + rendered QR PNG/SVG
+- [ ] `GET /api/v1/qr/hospital` â†’ signed payload `{ v: 1, hid, ts, sig }` (HMAC with `QR_SIGNING_SECRET`) + rendered QR PNG/SVG
 - [ ] Admin page `Settings.tsx` shows the printable QR poster (hospital name, "Scan to book", logo)
 - [ ] Web route `/scan/:payload` validates signature server-side (`POST /api/v1/qr/verify`), then routes to `/book?token=...`
-- [ ] Expired/tampered QR → friendly error page with "Book remotely" fallback link
+- [ ] Expired/tampered QR â†’ friendly error page with "Book remotely" fallback link
 
 **Done when:** scanning with a phone (or opening the URL) lands on booking with the hospital context; editing one character in the payload is rejected.
 
 ### 5.3 Patient booking UI
-- [ ] `/book` stepper: 1) Department → 2) Doctor (cards: designation, avg time, queue length, next slot) → 3) Date + slot grid → 4) Confirm summary → 5) Token screen
+- [ ] `/book` stepper: 1) Department â†’ 2) Doctor (cards: designation, avg time, queue length, next slot) â†’ 3) Date + slot grid â†’ 4) Confirm summary â†’ 5) Token screen
 - [ ] Slot grid shows available/booked/past states and disables double-submit
 - [ ] Post-booking screen: token number, doctor, department, room, estimated time, "Add to calendar" (ICS download), "View queue"
 - [ ] `/appointments` list with status chips and cancel action (confirm dialog)
@@ -327,29 +327,29 @@ wait-less/
 - [ ] Actions: cancel, reschedule, mark arrived (check-in), mark no-show
 - [ ] `POST /api/v1/appointments/walk-in` convenience endpoint for STAFF (patient by name/phone, auto token)
 
-**Done when:** staff can register a walk-in patient in ≤3 interactions and it appears immediately in the doctor's queue.
+**Done when:** staff can register a walk-in patient in â‰¤3 interactions and it appears immediately in the doctor's queue.
 
 ---
 
-## 9. Phase 6 — Queue engine
+## 9. Phase 6 â€” Queue engine
 
 **Goal:** a trustworthy, auditable queue per doctor with ETA, calling, delay handling and hardware hooks.
 
 ### 6.1 Queue core
-- [ ] `QueueEntry` created when an appointment reaches its day and is checked in (or auto-created for BOOKED appointments on the day, per chosen policy — document it)
-- [ ] `GET /api/v1/queue/:doctorId?date=` → ordered entries + `currentPatient` + `stats`
-- [ ] `PATCH /api/v1/queue/:id/call` — BOOKED/WAITING/DELAYED → CALLED, sets `calledAt`, `graceDeadlineAt = now + GRACE_MINUTES`
-- [ ] `PATCH /api/v1/queue/:id/start` — CALLED → IN_CONSULTATION, opens `Consultation` (staff action; also reachable from hardware event)
-- [ ] `PATCH /api/v1/queue/:id/complete` — IN_CONSULTATION → COMPLETED, closes `Consultation`, sets `durationSeconds`, triggers ETA recalc for everyone behind
-- [ ] `PATCH /api/v1/queue/:id/skip` — CALLED/DELAYED → SKIPPED (or requeue-to-end policy, configurable `SKIP_POLICY=end|drop`)
-- [ ] `PATCH /api/v1/queue/:id/arrive` — mark arrived / undo skip
+- [ ] `QueueEntry` created when an appointment reaches its day and is checked in (or auto-created for BOOKED appointments on the day, per chosen policy â€” document it)
+- [ ] `GET /api/v1/queue/:doctorId?date=` â†’ ordered entries + `currentPatient` + `stats`
+- [ ] `PATCH /api/v1/queue/:id/call` â€” BOOKED/WAITING/DELAYED â†’ CALLED, sets `calledAt`, `graceDeadlineAt = now + GRACE_MINUTES`
+- [ ] `PATCH /api/v1/queue/:id/start` â€” CALLED â†’ IN_CONSULTATION, opens `Consultation` (staff action; also reachable from hardware event)
+- [ ] `PATCH /api/v1/queue/:id/complete` â€” IN_CONSULTATION â†’ COMPLETED, closes `Consultation`, sets `durationSeconds`, triggers ETA recalc for everyone behind
+- [ ] `PATCH /api/v1/queue/:id/skip` â€” CALLED/DELAYED â†’ SKIPPED (or requeue-to-end policy, configurable `SKIP_POLICY=end|drop`)
+- [ ] `PATCH /api/v1/queue/:id/arrive` â€” mark arrived / undo skip
 - [ ] All mutations guarded by the shared state machine + wrapped in a transaction that also writes `AuditLog`
 - [ ] `position` recomputation helper keeps 1..n contiguous within a doctor/day
 
 **Done when:** calling a patient twice returns 409; completing a consultation moves the next entry into position 1; concurrency test (10 parallel `complete` calls) never leaves duplicate positions.
 
 ### 6.2 ETA engine
-- [ ] `estimateWait(entry)` = sum of `avgConsultMinutes` for entries ahead, using a rolling average of the doctor's last 10 completed consultations (fallback to configured average, clamp 3–60 min)
+- [ ] `estimateWait(entry)` = sum of `avgConsultMinutes` for entries ahead, using a rolling average of the doctor's last 10 completed consultations (fallback to configured average, clamp 3â€“60 min)
 - [ ] Recalculate on: call, start, complete, skip, cancel, new booking, delay
 - [ ] Store `estimatedStartAt` on `QueueEntry`; expose `estimatedWaitMinutes` in API responses
 - [ ] Pure function `packages/shared/src/eta.ts` with unit tests (empty queue, 1 ahead, all delayed, zero-variance, long-consult outlier)
@@ -358,8 +358,8 @@ wait-less/
 **Done when:** unit tests cover 8+ scenarios; ETA changes are pushed over socket (Phase 7) and reflected in the patient UI without reload.
 
 ### 6.3 Grace period & delay handling
-- [ ] BullMQ delayed job created on `call`: after `GRACE_MINUTES` (default 10, env-configurable) → if still CALLED, mark DELAYED + notify
-- [ ] After `DELAY_MINUTES` more (default 10) → auto-SKIP (configurable `AUTO_SKIP_ENABLED`) + notify
+- [ ] BullMQ delayed job created on `call`: after `GRACE_MINUTES` (default 10, env-configurable) â†’ if still CALLED, mark DELAYED + notify
+- [ ] After `DELAY_MINUTES` more (default 10) â†’ auto-SKIP (configurable `AUTO_SKIP_ENABLED`) + notify
 - [ ] Staff override endpoints with reason text; overrides are audit-logged
 - [ ] Patient self check-in ("I'm here") endpoint resets grace window once per appointment
 
@@ -369,13 +369,13 @@ wait-less/
 - [ ] Patient `QueueStatus.tsx`: big token card, "X patients ahead", ETA range, current token, live status timeline, "I'm here" button when within 2 positions, refresh-on-socket
 - [ ] Admin `QueueManagement.tsx`: per-doctor columns (or doctor selector), drag-free ordered list, call/start/complete/skip/arrive buttons, elapsed timers, next-up highlight, manual reorder with audit
 - [ ] Admin dashboard cards: total waiting, avg wait today, longest wait, consultations in progress
-- [ ] Doctor "room view" screen (`/admin/room/:doctorId`) — full-screen current token, sized for a wall display
+- [ ] Doctor "room view" screen (`/admin/room/:doctorId`) â€” full-screen current token, sized for a wall display
 
 **Done when:** the queue screen updates within 1s of any action, and the room view is readable from 3 meters.
 
 ---
 
-## 10. Phase 7 — Real-time & notifications
+## 10. Phase 7 â€” Real-time & notifications
 
 **Goal:** the right person gets the right nudge at the right moment, exactly once.
 
@@ -383,13 +383,13 @@ wait-less/
 - [ ] JWT auth handshake (`auth.token`), join rooms: `patient:{patientId}`, `doctor:{doctorId}`, `admin:queue`
 - [ ] Events: `queue:updated`, `queue:called`, `appointment:updated`, `notification:new`, `swap:requested`, `swap:responded`, `hardware:occupancy`
 - [ ] Emit from services, never from controllers (single emitter module `sockets/emitter.ts`)
-- [ ] Client hook `useSocket` + query invalidation mapping (event → invalidate keys) to avoid double-state bugs
+- [ ] Client hook `useSocket` + query invalidation mapping (event â†’ invalidate keys) to avoid double-state bugs
 - [ ] Reconnect strategy with `--with-credentials`, exponential backoff, fallback polling every 15s
 
-**Done when:** two browsers (patient + admin) stay in sync through call → start → complete; killing the API brings the client back automatically.
+**Done when:** two browsers (patient + admin) stay in sync through call â†’ start â†’ complete; killing the API brings the client back automatically.
 
 ### 7.2 Notification service
-- [ ] `notify({ userId|patientId, type, channel, title, body, data, dedupeKey, scheduledFor? })` — single entrypoint
+- [ ] `notify({ userId|patientId, type, channel, title, body, data, dedupeKey, scheduledFor? })` â€” single entrypoint
 - [ ] Channel adapters behind `NotificationChannel` interface: `inApp` (DB + socket), `webPush` (FCM), `sms` (stub), `email` (stub)
 - [ ] `IN_APP` fully working; `WEB_PUSH` wired with a service worker + permission prompt (deferred gracefully if denied)
 - [ ] Dedupe via unique `dedupeKey` so retries never double-send
@@ -400,7 +400,7 @@ wait-less/
 | Trigger | Type | Timing |
 |---|---|---|
 | Booking created | `BOOKING_CONFIRMED` | immediate |
-| Estimated turn −30 min | `READY_30_MIN` | scheduled job, rescheduled if ETA shifts |
+| Estimated turn âˆ’30 min | `READY_30_MIN` | scheduled job, rescheduled if ETA shifts |
 | 2 patients ahead | `NEXT_IN_QUEUE` | on queue change |
 | Called | in-app + push | immediate |
 | Grace expired | `DELAY_WARNING` | after grace |
@@ -411,7 +411,7 @@ wait-less/
 
 ### 7.3 Scheduled jobs (BullMQ)
 - [ ] Queue `notifications` + repeatable/precise delayed jobs; workers started in `server.ts` (separate `worker.ts` entrypoint optional)
-- [ ] `READY_30_MIN` job keyed `ready30:{appointmentId}`; **cancel + reschedule** when ETA is recalculated (this is the tricky part — test it)
+- [ ] `READY_30_MIN` job keyed `ready30:{appointmentId}`; **cancel + reschedule** when ETA is recalculated (this is the tricky part â€” test it)
 - [ ] Nightly job: seed tomorrow's queue entries from schedules, purge expired swap requests, close stale consultations
 - [ ] Job failure handling: 3 retries with backoff, dead-letter logging, `GET /api/v1/admin/jobs` (read-only) for ops visibility
 - [ ] Clock-skew guard: never schedule in the past; log skipped jobs
@@ -420,13 +420,13 @@ wait-less/
 
 ### 7.4 Preferences
 - [ ] `NotificationPreference` per patient (in-app always on; push opt-in; SMS off by default)
-- [ ] Quiet hours not needed for v1 — documented as future scope
+- [ ] Quiet hours not needed for v1 â€” documented as future scope
 
 **Done when:** disabling push stops pushes but not in-app rows.
 
 ---
 
-## 11. Phase 8 — Appointment swap
+## 11. Phase 8 â€” Appointment swap
 
 **Goal:** two patients can trade slots safely; the queue stays consistent; neither side can be tricked.
 
@@ -434,26 +434,26 @@ wait-less/
 - [ ] Same doctor only (v1); same date; both appointments in `BOOKED`/`WAITING`/`NOTIFIED`
 - [ ] Neither appointment `CALLED`, `IN_CONSULTATION`, `COMPLETED`, `CANCELLED`
 - [ ] One `PENDING` swap per appointment at a time; request expires in 10 minutes
-- [ ] Both patients must consent, recorded as two distinct steps: (1) requester sends the request = requester consent, (2) target responds `ACCEPT`. Without step 2 the swap never executes — this is the "both must accept" rule, implemented as sequential consent rather than two simultaneous signatures
+- [ ] Both patients must consent, recorded as two distinct steps: (1) requester sends the request = requester consent, (2) target responds `ACCEPT`. Without step 2 the swap never executes â€” this is the "both must accept" rule, implemented as sequential consent rather than two simultaneous signatures
 - [ ] Swaps allowed only until `SWAP_CUTOFF_MINUTES` (default 60) before the earlier slot
 
 **Done when:** the doc's rule table has a matching test id for each rule.
 
 ### 8.2 API
-- [ ] `POST /api/v1/swaps` `{ targetAppointmentId, message? }` — validates all rules, notifies target
-- [ ] `GET /api/v1/swaps?role=incoming|outgoing` — patient's pending/history
-- [ ] `POST /api/v1/swaps/eligible` — returns same-doctor appointments the patient may propose to (masked as token + slot + initials only, no PII leak)
+- [ ] `POST /api/v1/swaps` `{ targetAppointmentId, message? }` â€” validates all rules, notifies target
+- [ ] `GET /api/v1/swaps?role=incoming|outgoing` â€” patient's pending/history
+- [ ] `POST /api/v1/swaps/eligible` â€” returns same-doctor appointments the patient may propose to (masked as token + slot + initials only, no PII leak)
 - [ ] `PATCH /api/v1/swaps/:id/respond` `{ action: ACCEPT | REJECT }`
 - [ ] `PATCH /api/v1/swaps/:id/cancel` (requester)
 - [ ] Swap execution inside **one `prisma.$transaction`** with `SELECT ... FOR UPDATE` on both appointments + queue entries: exchange `slotStart/slotEnd/tokenNumber`, swap queue `position`, append `AuditLog`, set status `ACCEPTED`, notify both
-- [ ] Expiry job → `EXPIRED` + notify both
+- [ ] Expiry job â†’ `EXPIRED` + notify both
 - [ ] Race test: two swaps targeting the same appointment, and accept/reject arriving simultaneously
 
 **Done when:** a concurrency test (accept + cancel racing) ends in exactly one terminal state, no duplicate tokens/positions, and both patients see consistent data.
 
 ### 8.3 UI
 - [ ] Patient `SwapRequests.tsx`: incoming (accept/reject with countdown), outgoing (pending with cancel), history
-- [ ] From `MyAppointments`: "Swap slot" → eligible list → confirm dialog showing both slots clearly
+- [ ] From `MyAppointments`: "Swap slot" â†’ eligible list â†’ confirm dialog showing both slots clearly
 - [ ] Admin `Swaps.tsx`: oversight table, cancel abusive requests, audit trail link
 - [ ] Toasts + socket-driven updates (no polling)
 
@@ -461,14 +461,14 @@ wait-less/
 
 ---
 
-## 12. Phase 9 — Hardware integration (NXP FRDM-MCXN236)
+## 12. Phase 9 â€” Hardware integration (NXP FRDM-MCXN236)
 
 **Goal:** room occupancy events flow securely into the backend and assist (never dictate) queue state.
 
 ### 9.1 Contract first (no hardware needed)
 - [ ] `docs/hardware/contract.md`: MQTT topics, payloads, auth, retry, dedupe, failure modes
-  - `waitless/rooms/{roomId}/occupancy` → `{ v:1, roomId, type:"OCCUPIED"|"VACANT", ts, seq, sig }`
-  - `waitless/rooms/{roomId}/heartbeat` → `{ v:1, ts, rssi, fw }`
+  - `waitless/rooms/{roomId}/occupancy` â†’ `{ v:1, roomId, type:"OCCUPIED"|"VACANT", ts, seq, sig }`
+  - `waitless/rooms/{roomId}/heartbeat` â†’ `{ v:1, ts, rssi, fw }`
 - [ ] Device auth: per-device token in CONNECT username/password (Mosquitto ACL file) + HMAC body signature with `DEVICE_HMAC_SECRET`
 - [ ] `POST /api/v1/hardware/events` HTTP fallback with identical schema
 - [ ] Idempotency: `dedupeKey = roomId:seq`, unique index; replays are ignored
@@ -477,35 +477,35 @@ wait-less/
 **Done when:** `hardware/simulator/publish.ts` can emit OCCUPIED/VACANT and rows land in `HardwareEvent` with `processedAt` set and correct linkage.
 
 ### 9.2 Association logic (the important engineering detail)
-- [ ] Occupancy **cannot** identify a patient → associate with the doctor's `IN_CONSULTATION` appointment whose room matches
-- [ ] `OCCUPIED` when nothing in consultation → create an "unscheduled occupancy" alert for staff (never auto-create a consultation)
-- [ ] `VACANT` while `IN_CONSULTATION` → set `suggestedEndAt` + staff prompt "Consultation finished?"; auto-complete only if `HARDWARE_AUTO_COMPLETE=true` **and** vacancy persists `AUTO_COMPLETE_DEBOUNCE_MINUTES` (default 2)
+- [ ] Occupancy **cannot** identify a patient â†’ associate with the doctor's `IN_CONSULTATION` appointment whose room matches
+- [ ] `OCCUPIED` when nothing in consultation â†’ create an "unscheduled occupancy" alert for staff (never auto-create a consultation)
+- [ ] `VACANT` while `IN_CONSULTATION` â†’ set `suggestedEndAt` + staff prompt "Consultation finished?"; auto-complete only if `HARDWARE_AUTO_COMPLETE=true` **and** vacancy persists `AUTO_COMPLETE_DEBOUNCE_MINUTES` (default 2)
 - [ ] Debounce/flicker guard: ignore state flips within `SENSOR_DEBOUNCE_SECONDS` (default 5)
 - [ ] Staff override always wins; log `endedSource=SENSOR|STAFF`
-- [ ] Stale-device watchdog: no heartbeat for 5 min → mark room `DEGRADED`, show badge in admin UI
+- [ ] Stale-device watchdog: no heartbeat for 5 min â†’ mark room `DEGRADED`, show badge in admin UI
 
 **Done when:** scripted scenarios (patient walks in/out, patient leaves without staff action, device dies) each produce the expected queue state + alert, verified by integration tests using the simulator.
 
 ### 9.3 Firmware & simulator
-- [ ] `hardware/firmware/README.md`: board bring-up, toolchain (MCUXpresso / Zephyr), sensor choice, pinout, Wi-Fi module note (FRDM-MCXN236 has no radio → document ESP32/CYW43439 add-on and the UART/SPI link)
-- [ ] Minimal firmware skeleton: sensor read → debounce → MQTT publish → heartbeat task (target: publish working in a lab)
+- [ ] `hardware/firmware/README.md`: board bring-up, toolchain (MCUXpresso / Zephyr), sensor choice, pinout, Wi-Fi module note (FRDM-MCXN236 has no radio â†’ document ESP32/CYW43439 add-on and the UART/SPI link)
+- [ ] Minimal firmware skeleton: sensor read â†’ debounce â†’ MQTT publish â†’ heartbeat task (target: publish working in a lab)
 - [ ] `hardware/simulator/` CLI: `pnpm simulate --room OPD-1 --pattern in-out` supporting manual mode + scripted scenarios
 - [ ] `hardware/docs/wiring.md` with photo/diagram placeholders and calibration notes
 
 **Done when:** the simulator can convincingly drive a full consultation lifecycle on stage, and the firmware skeleton compiles and publishes heartbeat.
 
 ### 9.4 Admin hardware view
-- [ ] Admin `Settings.tsx` → Rooms: assign `roomId` to doctors, show live occupancy state, last heartbeat, event log (last 20), "Simulate event" button for demos
+- [ ] Admin `Settings.tsx` â†’ Rooms: assign `roomId` to doctors, show live occupancy state, last heartbeat, event log (last 20), "Simulate event" button for demos
 
 **Done when:** the room tile flips color within 2s of a simulator event.
 
 ---
 
-## 13. Phase 10 — Analytics, hardening, demo polish
+## 13. Phase 10 â€” Analytics, hardening, demo polish
 
 ### 10.1 Analytics
-- [ ] `GET /api/v1/analytics/overview?from=&to=` → appointments, completed, cancelled, no-show rate, avg wait, avg consult, peak hours
-- [ ] `GET /api/v1/analytics/doctors` → per-doctor throughput, avg consult, skip rate
+- [ ] `GET /api/v1/analytics/overview?from=&to=` â†’ appointments, completed, cancelled, no-show rate, avg wait, avg consult, peak hours
+- [ ] `GET /api/v1/analytics/doctors` â†’ per-doctor throughput, avg consult, skip rate
 - [ ] Admin `Dashboard.tsx`: KPI cards, simple charts (Recharts), date range, "today" default
 - [ ] Export CSV for appointments (staff)
 
@@ -525,9 +525,9 @@ wait-less/
 ### 10.3 Testing & CI
 - [ ] Unit: slot generator, ETA, state machine, swap transaction, phone normalization
 - [ ] Integration: supertest suites per module against a disposable Postgres (docker, `testcontainers` or a `waitless_test` DB reset per run)
-- [ ] E2E smoke (Playwright): patient books → admin calls → completes → patient sees COMPLETED; swap happy path; QR entry
+- [ ] E2E smoke (Playwright): patient books â†’ admin calls â†’ completes â†’ patient sees COMPLETED; swap happy path; QR entry
 - [ ] CI runs lint + typecheck + unit + integration on every PR; E2E on `main`
-- [ ] Coverage target: services ≥70% lines (report, don't block initially)
+- [ ] Coverage target: services â‰¥70% lines (report, don't block initially)
 
 **Done when:** `pnpm test` from a clean clone passes with Docker running; CI time under 10 minutes.
 
@@ -543,10 +543,10 @@ wait-less/
 
 ---
 
-## 14. Phase 11 — Future scope (explicitly out of v1)
+## 14. Phase 11 â€” Future scope (explicitly out of v1)
 
 - [ ] Separate doctor login + doctor-facing console
-- [ ] OTP/SMS verification (`PatientAuthProvider` → `sms-otp`)
+- [ ] OTP/SMS verification (`PatientAuthProvider` â†’ `sms-otp`)
 - [ ] RAG chatbot (pgvector + LLM, guardrailed to hospital data; read-only tools)
 - [ ] Multi-hospital tenancy (`hospitalId` scoping + migrations)
 - [ ] Payments / prepaid consultations
@@ -569,15 +569,15 @@ wait-less/
 **Status transitions (authoritative)**
 
 ```
-BOOKED ──checkin──▶ WAITING ──call──▶ CALLED ──start──▶ IN_CONSULTATION ──complete──▶ COMPLETED
-  │                   │                │  │                  │
-  │                   │                │  └─grace expired─▶ DELAYED ──arrive──▶ CALLED
-  │                   │                └──────skip────────▶ SKIPPED ──arrive──▶ CALLED
-  └────cancel────────▶ CANCELLED   (cancel allowed from BOOKED, WAITING, NOTIFIED, DELAYED)
+BOOKED â”€â”€checkinâ”€â”€â–¶ WAITING â”€â”€callâ”€â”€â–¶ CALLED â”€â”€startâ”€â”€â–¶ IN_CONSULTATION â”€â”€completeâ”€â”€â–¶ COMPLETED
+  â”‚                   â”‚                â”‚  â”‚                  â”‚
+  â”‚                   â”‚                â”‚  â””â”€grace expiredâ”€â–¶ DELAYED â”€â”€arriveâ”€â”€â–¶ CALLED
+  â”‚                   â”‚                â””â”€â”€â”€â”€â”€â”€skipâ”€â”€â”€â”€â”€â”€â”€â”€â–¶ SKIPPED â”€â”€arriveâ”€â”€â–¶ CALLED
+  â””â”€â”€â”€â”€cancelâ”€â”€â”€â”€â”€â”€â”€â”€â–¶ CANCELLED   (cancel allowed from BOOKED, WAITING, NOTIFIED, DELAYED)
 NOTIFIED is WAITING + alert sent (UI-only distinction; still queueable)
 NO_SHOW is terminal, set by staff or auto after day end
 ```
-- `NOTIFIED` must not be a dead-end: `NOTIFIED → CALLED`, `NOTIFIED → DELAYED`, `NOTIFIED → SKIPPED`, `NOTIFIED → CANCELLED`
+- `NOTIFIED` must not be a dead-end: `NOTIFIED â†’ CALLED`, `NOTIFIED â†’ DELAYED`, `NOTIFIED â†’ SKIPPED`, `NOTIFIED â†’ CANCELLED`
 - Frontend never sets status; it only requests actions
 
 **Time handling**
@@ -585,10 +585,10 @@ NO_SHOW is terminal, set by staff or auto after day end
 - Doctor schedules stored as minutes-from-midnight + `dayOfWeek`; slot generation in a pure function taking a timezone
 
 **Testing pyramid**
-- Pure functions (shared) → unit, fast, no DB
-- Services → integration with real Postgres, no mocks of Prisma
-- HTTP → supertest per module
-- Flows → Playwright
+- Pure functions (shared) â†’ unit, fast, no DB
+- Services â†’ integration with real Postgres, no mocks of Prisma
+- HTTP â†’ supertest per module
+- Flows â†’ Playwright
 
 **Git**
 - `main` protected; feature branches `feat/queue-engine`, `fix/eta-drift`
@@ -652,12 +652,12 @@ SMS_PROVIDER=mock
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| ETA drift after delays/skips | Patients lose trust | Recalc on every mutation; rolling average; show ETA as a range ("~20–30 min") |
+| ETA drift after delays/skips | Patients lose trust | Recalc on every mutation; rolling average; show ETA as a range ("~20â€“30 min") |
 | `READY_30_MIN` firing after the turn already came | Spam | Job cancel/reschedule on ETA change; dedupeKey; guard "only if status in WAITING/NOTIFIED" |
 | Swap double-spend (two patients claim one slot) | Corrupt queue | Row-level locks + single transaction + unique `(doctorId, slotStart)` + concurrency tests |
 | Hardware produces noise (door ajar, cleaning staff) | False completions | Debounce, `HARDWARE_AUTO_COMPLETE=false` default, staff confirmation, event log |
 | NXP board has no network radio | Phase 9 blocker | Document ESP32/CYW add-on early (9.3) + simulator keeps demo on track |
-| Patient identity without OTP → impersonation | Privacy | v1 accepts it (explicit decision); hide PII in swap lists; OTP path pre-wired |
+| Patient identity without OTP â†’ impersonation | Privacy | v1 accepts it (explicit decision); hide PII in swap lists; OTP path pre-wired |
 | pnpm/Turborepo learning curve | Slow start | Phase 1 keeps scaffolds empty; `docs/dev-setup.md` with copy-paste commands |
 | Scope creep into chatbot/doctors login | Slipped deadline | Section 14 is explicitly out of v1 |
 
@@ -679,8 +679,9 @@ A phase is `[x]` only when **all** of these are true:
 
 | Date | Phase | Note |
 |---|---|---|
-| 2026-11-13 | — | Plan created. Decisions: pnpm+Turborepo; OTP deferred (name+mobile session); single hospital. |
+| 2026-11-13 | â€” | Plan created. Decisions: pnpm+Turborepo; OTP deferred (name+mobile session); single hospital. |
 | 2026-11-13 | 1 | Foundation complete: monorepo scaffold, Docker infra (postgres/redis/mosquitto), API skeleton (Express + Prisma/Redis + health/readiness + Socket.IO), web skeleton (Vite/React/Tailwind v4/shadcn-style UI, all public/patient/admin routes), shared package, CI, ADR/db/state-machine docs. Root quality gates green (`pnpm lint`, `typecheck`, `test`, `build`) and `pnpm db:ping` returns db+redis up. |
 | 2026-11-13 | 2 | Database/domain complete: Prisma 6 schema + migrations (incl. pending-swap partial unique indexes), idempotent seed with demo clinic data, enum drift test, shared state machine/time/slot logic with tests. |
 | 2026-11-13 | 3 | Auth/RBAC baseline implemented: staff login/refresh/logout/me, patient mock name+mobile session, guards/middleware, web auth context + route guards + wired login/start/logout, RBAC matrix doc. Committed and pushed incrementally. |
 | 2026-11-13 | 4 | Hospital management complete (practical): department/doctor/schedule+availability APIs, admin management UIs, patient booking wired to live data/slots (submission pending Phase 5), shared-schema client validation and loading/empty-state polish. Committed and pushed incrementally. |
+| 2026-11-13 | 5 | Appointment booking in progress: core booking/walk-in/list/get/cancel/reschedule APIs with slot validation, conflict handling and per-day tokens; patient booking submission+token screen and My Visits; admin appointments list/filters/walk-in/cancel basics. QR flow and queue-integrated behaviors pending. |
