@@ -5,6 +5,7 @@ import { departmentRouter } from "./modules/departments/department.router";
 import { doctorRouter } from "./modules/doctors/doctor.router";
 import { healthRouter } from "./modules/health/health.router";
 import { patientRouter } from "./modules/patients/patient.router";
+import { qrRouter } from "./modules/qr/qr.router";
 import { queueRouter } from "./modules/queue/queue.router";
 
 export const apiRouter: Router = Router();
@@ -16,6 +17,7 @@ apiRouter.use("/departments", departmentRouter);
 apiRouter.use("/doctors", doctorRouter);
 apiRouter.use("/appointments", appointmentRouter);
 apiRouter.use("/queue", queueRouter);
+apiRouter.use("/qr", qrRouter);
 
 // Feature routers are mounted here as each phase lands:
 // apiRouter.use("/swaps", swapRouter);

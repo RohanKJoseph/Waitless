@@ -20,6 +20,7 @@ import { LandingPage } from "@/pages/public/Landing";
 import { LoginPage } from "@/pages/public/Login";
 import { NotFoundPage } from "@/pages/public/NotFound";
 import { PatientStartPage } from "@/pages/public/PatientStart";
+import { ScanPage } from "@/pages/public/Scan";
 
 export function App() {
   return (
@@ -28,6 +29,7 @@ export function App() {
         <Route index element={<LandingPage />} />
         <Route path="start" element={<PatientStartPage />} />
         <Route path="login" element={<LoginPage />} />
+        <Route path="scan/:token" element={<ScanPage />} />
       </Route>
 
       <Route element={<ProtectedRoute roles={["PATIENT"]} />}>
