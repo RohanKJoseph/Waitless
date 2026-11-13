@@ -32,7 +32,6 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ): void {
-  // Headers already sent: hand back to Express so the socket is destroyed.
   if (res.headersSent) return;
 
   const requestId = req.id as string | undefined;
@@ -63,13 +62,27 @@ export function errorHandler(
     return;
   }
 
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    const mapped = mapPrismaError(error);
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError
+  ) {
+    const mapped = mapPrismaError(error as Prisma.PrismaClientKnownRequestError);
     if (mapped) {
       res.status(mapped.status).json({
         error: { code: mapped.code, message: mapped.message, details: mapped.details, requestId },
       } satisfies ErrorBody);
       return;
+    }
+  } else if (error && typeof error === "object" && "code" in error && typeof (error as { code: unknown }).code === "string") {
+    // Fallback if instance check fails across module boundaries in some TS setups
+    const maybe = error as { code: string; meta?: { target?: unknown; field_name?: unknown } };
+    if (maybe.code.startsWith("P2")) {
+      const mapped = mapPrismaErrorByCode(maybe.code, maybe.meta);
+      if (mapped) {
+        res.status(mapped.status).json({
+          error: { code: mapped.code, message: mapped.message, details: mapped.details, requestId },
+        } satisfies ErrorBody);
+        return;
+      }
     }
   }
 
@@ -87,9 +100,16 @@ export function errorHandler(
 function mapPrismaError(
   error: Prisma.PrismaClientKnownRequestError,
 ): { code: ErrorCode; status: number; message: string; details?: unknown } | null {
-  switch (error.code) {
+  return mapPrismaErrorByCode(error.code, error.meta as { target?: unknown; field_name?: unknown } | undefined);
+}
+
+function mapPrismaErrorByCode(
+  code: string,
+  meta?: { target?: unknown; field_name?: unknown },
+): { code: ErrorCode; status: number; message: string; details?: unknown } | null {
+  switch (code) {
     case "P2002": {
-      const target = error.meta?.target;
+      const target = meta?.target;
       return {
         code: ERROR_CODES.CONFLICT,
         status: ERROR_STATUS.CONFLICT,
@@ -108,7 +128,7 @@ function mapPrismaError(
         code: ERROR_CODES.CONFLICT,
         status: ERROR_STATUS.CONFLICT,
         message: "This record is still referenced by other data",
-        details: { field: error.meta?.field_name },
+        details: { field: meta?.field_name },
       };
     default:
       return null;
