@@ -7,6 +7,7 @@ import { healthRouter } from "./modules/health/health.router";
 import { patientRouter } from "./modules/patients/patient.router";
 import { qrRouter } from "./modules/qr/qr.router";
 import { queueRouter } from "./modules/queue/queue.router";
+import { swapRouter } from "./modules/swaps/swap.router";
 
 export const apiRouter: Router = Router();
 
@@ -18,9 +19,9 @@ apiRouter.use("/doctors", doctorRouter);
 apiRouter.use("/appointments", appointmentRouter);
 apiRouter.use("/queue", queueRouter);
 apiRouter.use("/qr", qrRouter);
+apiRouter.use("/swaps", swapRouter);
 
 // Feature routers are mounted here as each phase lands:
-// apiRouter.use("/swaps", swapRouter);
 // apiRouter.use("/notifications", notificationRouter);
 // apiRouter.use("/admin", adminRouter);
 // apiRouter.use("/hardware", hardwareRouter);
