@@ -1,10 +1,60 @@
 import type { Prisma } from "@prisma/client";
+import { dayOfWeek, generateSlotsForWindows, zonedDateTimeToUtc, type ScheduleWindow } from "@waitless/shared";
+import { env } from "../../config/env";
 import { prisma } from "../../config/prisma";
 import { AppError } from "../../utils/errors";
+
+const ACTIVE_QUEUE_STATUSES = ["BOOKED", "WAITING", "NOTIFIED", "CALLED", "IN_CONSULTATION", "DELAYED"] as const;
+
+async function enrichDoctor(doctor: { id: string }, dateKey: string) {
+  const weekday = dayOfWeek(dateKey);
+  const [schedules, exception, taken, queueLength] = await Promise.all([
+    prisma.doctorSchedule.findMany({ where: { doctorId: doctor.id, dayOfWeek: weekday, isActive: true } }),
+    prisma.scheduleException.findUnique({ where: { doctorId_date: { doctorId: doctor.id, date: new Date(`${dateKey}T00:00:00.000Z`) } } }),
+    prisma.appointment.findMany({
+      where: { doctorId: doctor.id, serviceDay: dateKey, status: { in: [...ACTIVE_QUEUE_STATUSES] } },
+      select: { slotStart: true },
+    }),
+    prisma.queueEntry.count({ where: { doctorId: doctor.id, serviceDay: dateKey, status: { in: [...ACTIVE_QUEUE_STATUSES] } } }),
+  ]);
+
+  let windows: ScheduleWindow[] = schedules.map((s) => ({ startMinute: s.startMinute, endMinute: s.endMinute, slotMinutes: s.slotMinutes }));
+  if (exception) {
+    if (exception.isClosed) windows = [];
+    else if (exception.startMinute != null && exception.endMinute != null) {
+      windows = [{ startMinute: exception.startMinute, endMinute: exception.endMinute, slotMinutes: schedules[0]?.slotMinutes ?? 15 }];
+    }
+  }
+
+  let slots: ReturnType<typeof generateSlotsForWindows> = [];
+  if (windows.length) {
+    try {
+      slots = generateSlotsForWindows(windows);
+    } catch {
+      slots = [];
+    }
+  }
+
+  const takenSet = new Set(taken.map((a) => a.slotStart.toISOString()));
+  const now = new Date();
+  const next = slots
+    .map((slot) => {
+      const start = zonedDateTimeToUtc(dateKey, slot.startMinute, env.HOSPITAL_TIMEZONE);
+      return { start, label: slot.label, isBooked: takenSet.has(start.toISOString()) };
+    })
+    .find((s) => !s.isBooked && s.start.getTime() > now.getTime());
+
+  return {
+    isOnDuty: slots.length > 0 && !exception?.isClosed,
+    queueLength,
+    nextAvailableSlot: next ? { start: next.start.toISOString(), label: next.label } : null,
+  };
+}
 
 export async function listDoctors(opts: {
   departmentId?: string;
   q?: string;
+  date?: string;
   includeInactive?: boolean;
   activeOnly?: boolean;
   page?: number;
@@ -37,8 +87,12 @@ export async function listDoctors(opts: {
     prisma.doctor.count({ where }),
   ]);
 
+  const doctors = opts.date
+    ? await Promise.all(items.map(async (doctor) => ({ ...doctor, ...(await enrichDoctor(doctor, opts.date!)) })))
+    : items;
+
   return {
-    doctors: items,
+    doctors,
     pagination: { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) },
   };
 }

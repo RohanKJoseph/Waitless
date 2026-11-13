@@ -14,6 +14,7 @@ export const doctorUpdateSchema = doctorCreateSchema.partial();
 export const doctorQuerySchema = z.object({
   departmentId: z.string().optional(),
   q: z.string().trim().optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   includeInactive: z
     .enum(["true", "false"])
     .optional()

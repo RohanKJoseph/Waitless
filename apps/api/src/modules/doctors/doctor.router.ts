@@ -22,6 +22,7 @@ doctorRouter.get("/", validate(doctorQuerySchema, "query"), async (req, res, nex
     const query = req.query as {
       departmentId?: string;
       q?: string;
+      date?: string;
       includeInactive?: boolean;
       active?: boolean;
       page?: number;
@@ -31,6 +32,7 @@ doctorRouter.get("/", validate(doctorQuerySchema, "query"), async (req, res, nex
     const result = await listDoctors({
       departmentId: query.departmentId,
       q: query.q,
+      date: query.date,
       includeInactive: query.includeInactive,
       activeOnly: query.active === false ? false : activeOnly,
       page: query.page,
