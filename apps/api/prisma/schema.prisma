@@ -1,0 +1,488 @@
+// Prisma schema for Waitless.
+//
+// Conventions
+//  - IDs are cuid() strings (opaque, URL-safe, no UUID casting in raw SQL).
+//  - All instants are stored in UTC. "Local" day boundaries are computed with
+//    the hospital timezone in @waitless/shared/time.
+//  - `serviceDay` is a "YYYY-MM-DD" string in the hospital timezone. It exists
+//    so daily queues and token numbers can be queried and constrained without
+//    timezone math inside SQL.
+//  - Enum values are mirrored in packages/shared/src/enums.ts; a drift test
+//    (test/enum-drift.test.ts) fails the build if they diverge.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  ADMIN
+  STAFF
+  PATIENT
+}
+
+enum AppointmentStatus {
+  BOOKED
+  WAITING
+  NOTIFIED
+  CALLED
+  IN_CONSULTATION
+  COMPLETED
+  DELAYED
+  SKIPPED
+  CANCELLED
+  NO_SHOW
+}
+
+enum BookingSource {
+  QR
+  REMOTE
+  WALK_IN
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMED
+  READY_30_MIN
+  NEXT_IN_QUEUE
+  DELAY_WARNING
+  SKIPPED
+  QUEUE_UPDATED
+  SWAP_REQUESTED
+  SWAP_ACCEPTED
+  SWAP_REJECTED
+  SWAP_EXPIRED
+  APPOINTMENT_CANCELLED
+}
+
+enum NotificationChannel {
+  IN_APP
+  WEB_PUSH
+  SMS
+  EMAIL
+}
+
+enum NotificationStatus {
+  PENDING
+  SCHEDULED
+  SENT
+  FAILED
+  CANCELLED
+}
+
+enum SwapStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+enum HardwareEventType {
+  OCCUPIED
+  VACANT
+  HEARTBEAT
+}
+
+enum ConsultationEndSource {
+  STAFF
+  SENSOR
+  TIMEOUT
+  SYSTEM
+}
+
+enum AuditAction {
+  APPOINTMENT_CREATED
+  APPOINTMENT_CANCELLED
+  APPOINTMENT_RESCHEDULED
+  APPOINTMENT_CHECKED_IN
+  QUEUE_CALLED
+  QUEUE_STARTED
+  QUEUE_COMPLETED
+  QUEUE_SKIPPED
+  QUEUE_REQUEUED
+  QUEUE_REORDERED
+  SWAP_ACCEPTED
+  SWAP_REJECTED
+  SWAP_EXPIRED
+  DOCTOR_CREATED
+  DOCTOR_UPDATED
+  DOCTOR_DEACTIVATED
+  DEPARTMENT_CREATED
+  DEPARTMENT_UPDATED
+  DEPARTMENT_DEACTIVATED
+  SCHEDULE_UPDATED
+  STAFF_LOGIN
+  PATIENT_SIGNED_IN
+  HARDWARE_OVERRIDE
+}
+
+// ---------------------------------------------------------------------------
+// Identity
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String    @id @default(cuid())
+  role         Role
+  name         String
+  phone        String?   @unique
+  email        String?   @unique
+  passwordHash String?
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  patient       Patient?
+  adminProfile  AdminProfile?
+  refreshTokens RefreshToken[]
+  notifications Notification[]
+
+  auditLogs           AuditLog[]    @relation("AuditActor")
+  appointmentsBooked  Appointment[] @relation("AppointmentBookedBy")
+  consultationsOpened Consultation[] @relation("ConsultationStartedBy")
+  swapsResponded      SwapRequest[] @relation("SwapRespondedBy")
+
+  @@index([role, isActive])
+}
+
+model Patient {
+  id            String    @id @default(cuid())
+  userId        String?   @unique
+  fullName      String
+  phone         String    @unique
+  email         String?
+  phoneVerified Boolean   @default(false)
+  dateOfBirth   DateTime? @db.Date
+  gender        String?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user               User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  appointments       Appointment[]
+  notifications      Notification[]
+  notificationPrefs  NotificationPreference?
+  swapsInitiated     SwapRequest[]        @relation("SwapRequesterPatient")
+  swapsReceived      SwapRequest[]        @relation("SwapTargetPatient")
+}
+
+model AdminProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  designation String
+  staffCode   String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  userAgent String?
+  ip        String?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Hospital structure
+// ---------------------------------------------------------------------------
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  code        String   @unique
+  description String?
+  location    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  doctors      Doctor[]
+  appointments Appointment[]
+}
+
+model Doctor {
+  id                String   @id @default(cuid())
+  departmentId      String
+  fullName          String
+  designation       String
+  avgConsultMinutes Int      @default(12)
+  /** Assigned room. One room per doctor; hardware events resolve by Room.code. */
+  roomId            String?  @unique
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  department    Department      @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  room          Room?           @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  schedules     DoctorSchedule[]
+  exceptions    ScheduleException[]
+  appointments  Appointment[]
+  queueEntries  QueueEntry[]
+  hardwareEvents HardwareEvent[]
+
+  @@index([departmentId, isActive])
+}
+
+model DoctorSchedule {
+  id          String   @id @default(cuid())
+  doctorId    String
+  /** 0 = Sunday ... 6 = Saturday, in the hospital timezone. */
+  dayOfWeek   Int
+  /** Minutes from midnight, hospital-local. End is exclusive. */
+  startMinute Int
+  endMinute   Int
+  slotMinutes Int      @default(15)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  doctor Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@unique([doctorId, dayOfWeek, startMinute])
+  @@index([doctorId, dayOfWeek, isActive])
+}
+
+model ScheduleException {
+  id          String   @id @default(cuid())
+  doctorId    String
+  date        DateTime @db.Date
+  isClosed    Boolean  @default(true)
+  startMinute Int?
+  endMinute   Int?
+  note        String?
+  createdAt   DateTime @default(now())
+
+  doctor Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@unique([doctorId, date])
+}
+
+// ---------------------------------------------------------------------------
+// Booking and queue
+// ---------------------------------------------------------------------------
+
+model Appointment {
+  id           String            @id @default(cuid())
+  patientId    String
+  doctorId     String
+  departmentId String
+  slotStart    DateTime
+  slotEnd      DateTime
+  status       AppointmentStatus @default(BOOKED)
+  /** Per-doctor, per-day sequence printed on the patient's slip. */
+  tokenNumber  Int
+  /** "YYYY-MM-DD" in the hospital timezone. */
+  serviceDay   String            @db.VarChar(10)
+  source       BookingSource     @default(REMOTE)
+  notes        String?
+  bookedByUserId String?
+  checkedInAt    DateTime?
+  cancelledAt    DateTime?
+  cancelReason   String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  patient    Patient          @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor     Doctor           @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  department Department       @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  bookedBy   User?            @relation("AppointmentBookedBy", fields: [bookedByUserId], references: [id], onDelete: SetNull)
+  queueEntry QueueEntry?
+
+  swapsAsRequester SwapRequest[] @relation("SwapRequesterAppointment")
+  swapsAsTarget    SwapRequest[] @relation("SwapTargetAppointment")
+
+  @@unique([doctorId, slotStart])
+  @@unique([doctorId, serviceDay, tokenNumber])
+  @@index([patientId, status])
+  @@index([doctorId, serviceDay, status])
+  @@index([serviceDay, status])
+}
+
+model QueueEntry {
+  id              String            @id @default(cuid())
+  appointmentId   String            @unique
+  doctorId        String
+  serviceDay      String            @db.VarChar(10)
+  /** 1..n, contiguous per doctor per day. Enforced by the queue service. */
+  position        Int
+  status          AppointmentStatus @default(WAITING)
+  estimatedStartAt DateTime?
+  notifiedAt      DateTime?
+  calledAt        DateTime?
+  graceDeadlineAt DateTime?
+  completedAt     DateTime?
+  skippedReason   String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  appointment  Appointment   @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  doctor       Doctor        @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  consultation Consultation?
+
+  @@index([doctorId, serviceDay, status, position])
+  @@index([status, graceDeadlineAt])
+}
+
+model Consultation {
+  id               String                @id @default(cuid())
+  queueEntryId     String                @unique
+  startedAt        DateTime              @default(now())
+  endedAt          DateTime?
+  endSource        ConsultationEndSource?
+  durationSeconds  Int?
+  startedByUserId  String?
+  notes            String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  queueEntry    QueueEntry @relation(fields: [queueEntryId], references: [id], onDelete: Cascade)
+  startedByUser User?      @relation("ConsultationStartedBy", fields: [startedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([startedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id            String              @id @default(cuid())
+  userId        String?
+  patientId     String?
+  appointmentId String?
+  type          NotificationType
+  channel       NotificationChannel @default(IN_APP)
+  title         String
+  body          String
+  data          Json?
+  status        NotificationStatus  @default(PENDING)
+  scheduledFor  DateTime?
+  sentAt        DateTime?
+  readAt        DateTime?
+  /** Idempotency key, e.g. "ready30:apt_123". Prevents duplicate sends. */
+  dedupeKey     String?             @unique
+  createdAt     DateTime            @default(now())
+
+  user    User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patient Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId, readAt])
+  @@index([userId, readAt])
+  @@index([status, scheduledFor])
+}
+
+model NotificationPreference {
+  id           String   @id @default(cuid())
+  patientId    String   @unique
+  pushEnabled  Boolean  @default(true)
+  smsEnabled   Boolean  @default(false)
+  emailEnabled Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Swaps
+// ---------------------------------------------------------------------------
+
+model SwapRequest {
+  id                     String     @id @default(cuid())
+  requesterAppointmentId String
+  targetAppointmentId    String
+  requesterPatientId     String
+  targetPatientId        String
+  status                 SwapStatus @default(PENDING)
+  message                String?
+  expiresAt              DateTime
+  respondedAt            DateTime?
+  respondedByUserId      String?
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
+
+  requesterAppointment Appointment @relation("SwapRequesterAppointment", fields: [requesterAppointmentId], references: [id], onDelete: Cascade)
+  targetAppointment    Appointment @relation("SwapTargetAppointment", fields: [targetAppointmentId], references: [id], onDelete: Cascade)
+  requesterPatient     Patient     @relation("SwapRequesterPatient", fields: [requesterPatientId], references: [id], onDelete: Cascade)
+  targetPatient        Patient     @relation("SwapTargetPatient", fields: [targetPatientId], references: [id], onDelete: Cascade)
+  respondedByUser      User?       @relation("SwapRespondedBy", fields: [respondedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([targetPatientId, status])
+  @@index([requesterPatientId, status])
+  @@index([status, expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// Hardware and audit
+// ---------------------------------------------------------------------------
+
+model HardwareEvent {
+  id         String            @id @default(cuid())
+  type       HardwareEventType
+  roomId     String
+  doctorId   String?
+  occurredAt DateTime
+  receivedAt DateTime          @default(now())
+  payload    Json?
+  processedAt DateTime?
+  result     String?
+  /** "roomCode:seq" — replays from the device are ignored. */
+  dedupeKey  String            @unique
+  createdAt  DateTime          @default(now())
+
+  room   Room    @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  doctor Doctor? @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+
+  @@index([roomId, occurredAt])
+  @@index([processedAt])
+}
+
+model AuditLog {
+  id          String      @id @default(cuid())
+  actorUserId String?
+  action      AuditAction
+  entity      String
+  entityId    String
+  before      Json?
+  after       Json?
+  ip          String?
+  createdAt   DateTime    @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId])
+  @@index([actorUserId, createdAt])
+  @@index([createdAt])
+}
+
+model Room {
+  id         String    @id @default(cuid())
+  /** Human code used in MQTT topics, e.g. "OPD-1". */
+  code       String    @unique
+  name       String
+  isActive   Boolean   @default(true)
+  lastSeenAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  doctor         Doctor?
+  hardwareEvents HardwareEvent[]
+}

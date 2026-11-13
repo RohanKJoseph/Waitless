@@ -1,0 +1,63 @@
+name: waitless
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: waitless-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: waitless
+      POSTGRES_PASSWORD: waitless
+      POSTGRES_DB: waitless
+      # Speeds up local test runs; not for production.
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U waitless -d waitless"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: waitless-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: waitless-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883" # MQTT
+      - "9001:9001" # MQTT over WebSockets
+    volumes:
+      - ./infra/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquittodata:/mosquitto/data
+      - mosquittolog:/mosquitto/log
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -h localhost -t '$$SYS/#' -C 1 -W 3 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  pgdata:
+  redisdata:
+  mosquittodata:
+  mosquittolog:

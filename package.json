@@ -1,0 +1,45 @@
+{
+  "name": "waitless",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Waitless - smart hospital appointment, queue and notification platform",
+  "packageManager": "pnpm@10.20.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,css,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,md,css,yml,yaml}\"",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "infra:logs": "docker compose logs -f",
+    "infra:status": "docker compose ps",
+    "db:generate": "pnpm --filter @waitless/api db:generate",
+    "db:migrate": "pnpm --filter @waitless/api db:migrate",
+    "db:deploy": "pnpm --filter @waitless/api db:deploy",
+    "db:push": "pnpm --filter @waitless/api db:push",
+    "db:seed": "pnpm --filter @waitless/api db:seed",
+    "db:reset": "pnpm --filter @waitless/api db:reset",
+    "db:studio": "pnpm --filter @waitless/api db:studio",
+    "db:ping": "pnpm --filter @waitless/api db:ping"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.14.0",
+    "prettier": "^3.10.1",
+    "rimraf": "^6.1.4",
+    "turbo": "^2.11.11",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.2"
+  }
+}

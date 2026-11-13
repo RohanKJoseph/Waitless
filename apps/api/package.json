@@ -1,0 +1,60 @@
+{
+  "name": "@waitless/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch --clear-screen=false src/server.ts",
+    "build": "tsup",
+    "start": "node dist/server.js",
+    "lint": "eslint src prisma --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/with-env.mjs vitest run",
+    "test:watch": "node scripts/with-env.mjs vitest",
+    "db:generate": "node scripts/with-env.mjs prisma generate",
+    "db:migrate": "node scripts/with-env.mjs prisma migrate dev",
+    "db:deploy": "node scripts/with-env.mjs prisma migrate deploy",
+    "db:push": "node scripts/with-env.mjs prisma db push",
+    "db:seed": "node scripts/with-env.mjs tsx prisma/seed.ts",
+    "db:reset": "node scripts/with-env.mjs prisma migrate reset --force",
+    "db:studio": "node scripts/with-env.mjs prisma studio",
+    "db:ping": "node scripts/with-env.mjs tsx scripts/db-ping.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@node-rs/argon2": "^2.2.2",
+    "@prisma/client": "6.19.3",
+    "@waitless/shared": "workspace:*",
+    "bullmq": "^6.7.6",
+    "compression": "^1.8.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "helmet": "^8.3.0",
+    "ioredis": "^6.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "pino": "^10.4.0",
+    "pino-http": "^11.0.0",
+    "socket.io": "^4.8.4",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/compression": "^1.8.1",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^26.6.6",
+    "@types/supertest": "^7.2.1",
+    "pino-pretty": "^13.2.0",
+    "prisma": "6.19.3",
+    "supertest": "^7.3.2",
+    "tsup": "^9.0.0",
+    "tsx": "^4.23.15",
+    "vitest": "^3.2.7"
+  }
+}
