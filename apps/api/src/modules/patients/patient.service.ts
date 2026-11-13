@@ -117,3 +117,26 @@ export async function updatePatientProfile(userId: string, data: { fullName?: st
     phoneVerified: updated.phoneVerified,
   };
 }
+
+export async function listPatientsForAdmin(query: { q?: string; page: number; pageSize: number }) {
+  const where = query.q
+    ? {
+        OR: [
+          { fullName: { contains: query.q, mode: "insensitive" as const } },
+          { phone: { contains: query.q } },
+          { email: { contains: query.q, mode: "insensitive" as const } },
+        ],
+      }
+    : {};
+  const [items, total] = await Promise.all([
+    prisma.patient.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (query.page - 1) * query.pageSize,
+      take: query.pageSize,
+      include: { _count: { select: { appointments: true } } },
+    }),
+    prisma.patient.count({ where }),
+  ]);
+  return { patients: items, pagination: { page: query.page, pageSize: query.pageSize, total, totalPages: Math.max(1, Math.ceil(total / query.pageSize)) } };
+}

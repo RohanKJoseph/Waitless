@@ -4,12 +4,14 @@ import { env } from "./config/env";
 import { logger } from "./config/logger";
 import { prisma } from "./config/prisma";
 import { redis } from "./config/redis";
+import { startMqttIntegration, stopMqttIntegration } from "./integrations/mqtt";
 import { initSockets, shutdownSockets } from "./sockets";
 
 const app = createApp();
 const httpServer = createServer(app);
 
 initSockets(httpServer);
+startMqttIntegration();
 
 httpServer.listen(env.PORT, () => {
   logger.info(`Waitless API listening on http://localhost:${env.PORT}/api/v1`);
@@ -34,6 +36,7 @@ async function shutdown(signal: string): Promise<void> {
   try {
     await new Promise<void>((resolve) => httpServer.close(() => resolve()));
     await shutdownSockets();
+    await stopMqttIntegration();
     await prisma.$disconnect();
     redis.disconnect();
     clearTimeout(forceExit);
