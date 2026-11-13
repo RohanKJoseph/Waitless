@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Building2, Pencil, Plus, Power } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { departmentFormSchema } from "@waitless/shared";
 import { ApiError } from "@/lib/api";
 import {
   createDepartment,
@@ -26,39 +27,56 @@ function DepartmentForm({
   submitting,
 }: {
   initial?: Partial<Department>;
-  onSubmit: (values: { name: string; code: string; description: string; location: string }) => Promise<void>;
+  onSubmit: (values: { name: string; code: string; description?: string; location?: string }) => Promise<void>;
   submitting: boolean;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [code, setCode] = useState(initial?.code ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [location, setLocation] = useState(initial?.location ?? "");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   return (
     <form
       className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
-        void onSubmit({ name, code, description, location });
+        const parsed = departmentFormSchema.safeParse({ name, code, description, location });
+        if (!parsed.success) {
+          const next: Record<string, string> = {};
+          for (const issue of parsed.error.issues) {
+            const key = String(issue.path[0] ?? "form");
+            if (!next[key]) next[key] = issue.message;
+          }
+          setErrors(next);
+          toast.error("Please fix the highlighted fields");
+          return;
+        }
+        setErrors({});
+        void onSubmit(parsed.data);
       }}
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="dept-name">Name</Label>
-          <Input id="dept-name" value={name} onChange={(e) => setName(e.target.value)} required />
+          <Input id="dept-name" value={name} onChange={(e) => setName(e.target.value)} aria-invalid={!!errors.name} />
+          {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="dept-code">Code</Label>
-          <Input id="dept-code" value={code} onChange={(e) => setCode(e.target.value)} required placeholder="GM" />
+          <Input id="dept-code" value={code} onChange={(e) => setCode(e.target.value)} placeholder="GM" aria-invalid={!!errors.code} />
+          {errors.code && <p className="text-xs text-destructive">{errors.code}</p>}
         </div>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="dept-location">Location</Label>
         <Input id="dept-location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Ground floor, Block A" />
+        {errors.location && <p className="text-xs text-destructive">{errors.location}</p>}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="dept-desc">Description</Label>
         <Input id="dept-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Short description" />
+        {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
       </div>
       <DialogFooter>
         <Button type="submit" disabled={submitting}>{submitting ? "Saving…" : "Save"}</Button>
@@ -132,7 +150,7 @@ export function DepartmentsPage() {
               <DepartmentForm
                 submitting={createMut.isPending}
                 onSubmit={async (values) => {
-                  await createMut.mutateAsync({ ...values, description: values.description || undefined, location: values.location || undefined });
+                  await createMut.mutateAsync(values);
                 }}
               />
             </DialogContent>

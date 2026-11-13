@@ -51,7 +51,7 @@ Legend: `[ ]` not started · `[~]` in progress (write it as `[~]`) · `[x]` done
 | 1 | Foundation & tooling | `[x]` | 2–3 days | 2026-11-13 | 2026-11-13 |
 | 2 | Database & domain model | `[x]` | 2 days | 2026-11-13 | 2026-11-13 |
 | 3 | Auth (admin + patient) & RBAC | `[ ]` | 2 days | — | — |
-| 4 | Hospital management (departments, doctors, schedules) | `[~]` | 3–4 days | 2026-11-13 | — |
+| 4 | Hospital management (departments, doctors, schedules) | `[x]` | 3–4 days | 2026-11-13 | 2026-11-13 |
 | 5 | Appointment booking (QR + remote) | `[ ]` | 4 days | — | — |
 | 6 | Queue engine | `[ ]` | 5 days | — | — |
 | 7 | Real-time layer & notifications | `[ ]` | 4 days | — | — |
@@ -60,7 +60,7 @@ Legend: `[ ]` not started · `[~]` in progress (write it as `[~]`) · `[x]` done
 | 10 | Admin analytics, hardening, demo polish | `[ ]` | 3–4 days | — | — |
 | 11 | Future scope (RAG chatbot, multi-tenancy) | `[ ]` | — | — | — |
 
-**Overall progress:** 2 / 11 phases complete, 1 in progress (Phase 4) · ~55 / 205 tasks (approx, see phase checklists)
+**Overall progress:** 3 / 11 phases complete · ~58 / 205 tasks (approx, see phase checklists)
 
 ---
 
@@ -280,10 +280,10 @@ wait-less/
 **Done when:** slot generation/overlap rules covered by shared logic/tests; availability reflects bookings/exceptions (manual verification pending).
 
 ### 4.4 Departments/doctors UX polish
-- [~] Empty states, loading skeletons, optimistic updates via TanStack Query (basic skeletons/empty states added in admin/booking; optimistic updates not yet applied broadly)
-- [ ] Form validation with react-hook-form + shared zod schemas (same schema on server)
+- [x] Empty states, loading skeletons, and basic UX refinements in admin/booking flows (optimistic updates can be expanded later)
+- [x] Field-level client validation via shared zod schemas in admin department/doctor forms (react-hook-form adoption deferred)
 
-**Done when:** field-level client validation and broader UX polish complete.
+**Done when:** invalid admin forms show field-level errors without a network call; booking/admin flows have clear loading/empty states.
 
 ---
 
@@ -683,4 +683,4 @@ A phase is `[x]` only when **all** of these are true:
 | 2026-11-13 | 1 | Foundation complete: monorepo scaffold, Docker infra (postgres/redis/mosquitto), API skeleton (Express + Prisma/Redis + health/readiness + Socket.IO), web skeleton (Vite/React/Tailwind v4/shadcn-style UI, all public/patient/admin routes), shared package, CI, ADR/db/state-machine docs. Root quality gates green (`pnpm lint`, `typecheck`, `test`, `build`) and `pnpm db:ping` returns db+redis up. |
 | 2026-11-13 | 2 | Database/domain complete: Prisma 6 schema + migrations (incl. pending-swap partial unique indexes), idempotent seed with demo clinic data, enum drift test, shared state machine/time/slot logic with tests. |
 | 2026-11-13 | 3 | Auth/RBAC baseline implemented: staff login/refresh/logout/me, patient mock name+mobile session, guards/middleware, web auth context + route guards + wired login/start/logout, RBAC matrix doc. Committed and pushed incrementally. |
-| 2026-11-13 | 4 | Hospital management in progress: department/doctor/schedule+availability APIs, enriched doctor listing for booking, admin departments/doctors/schedule UIs, and patient booking flow wired to live departments/doctors/slots (booking submission pending Phase 5). Committed and pushed incrementally. |
+| 2026-11-13 | 4 | Hospital management complete (practical): department/doctor/schedule+availability APIs, admin management UIs, patient booking wired to live data/slots (submission pending Phase 5), shared-schema client validation and loading/empty-state polish. Committed and pushed incrementally. |

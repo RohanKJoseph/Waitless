@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarClock, Pencil, Plus, Power, Stethoscope, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { doctorFormSchema } from "@waitless/shared";
 import { ApiError } from "@/lib/api";
 import {
   createDoctor,
@@ -169,42 +170,59 @@ function DoctorForm({
   const [fullName, setFullName] = useState(initial?.fullName ?? "");
   const [designation, setDesignation] = useState(initial?.designation ?? "");
   const [avgConsultMinutes, setAvgConsultMinutes] = useState(String(initial?.avgConsultMinutes ?? 12));
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   return (
     <form
       className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
-        void onSubmit({ departmentId, fullName, designation, avgConsultMinutes: Number(avgConsultMinutes) || 12 });
+        const parsed = doctorFormSchema.safeParse({ departmentId, fullName, designation, avgConsultMinutes });
+        if (!parsed.success) {
+          const next: Record<string, string> = {};
+          for (const issue of parsed.error.issues) {
+            const key = String(issue.path[0] ?? "form");
+            if (!next[key]) next[key] = issue.message;
+          }
+          setErrors(next);
+          toast.error("Please fix the highlighted fields");
+          return;
+        }
+        setErrors({});
+        void onSubmit(parsed.data);
       }}
     >
       <div className="space-y-1.5">
         <Label>Department</Label>
         <Select value={departmentId} onValueChange={setDepartmentId}>
-          <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
+          <SelectTrigger aria-invalid={!!errors.departmentId}><SelectValue placeholder="Select department" /></SelectTrigger>
           <SelectContent>
             {departments.map((d) => (
               <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
+        {errors.departmentId && <p className="text-xs text-destructive">{errors.departmentId}</p>}
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label>Full name</Label>
-          <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required placeholder="Dr. Anita Rao" />
+          <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Dr. Anita Rao" aria-invalid={!!errors.fullName} />
+          {errors.fullName && <p className="text-xs text-destructive">{errors.fullName}</p>}
         </div>
         <div className="space-y-1.5">
           <Label>Designation</Label>
-          <Input value={designation} onChange={(e) => setDesignation(e.target.value)} required placeholder="Consultant" />
+          <Input value={designation} onChange={(e) => setDesignation(e.target.value)} placeholder="Consultant" aria-invalid={!!errors.designation} />
+          {errors.designation && <p className="text-xs text-destructive">{errors.designation}</p>}
         </div>
       </div>
       <div className="space-y-1.5">
         <Label>Avg consult (minutes)</Label>
-        <Input type="number" min={3} max={120} value={avgConsultMinutes} onChange={(e) => setAvgConsultMinutes(e.target.value)} required />
+        <Input type="number" min={3} max={120} value={avgConsultMinutes} onChange={(e) => setAvgConsultMinutes(e.target.value)} aria-invalid={!!errors.avgConsultMinutes} />
+        {errors.avgConsultMinutes && <p className="text-xs text-destructive">{errors.avgConsultMinutes}</p>}
       </div>
       <DialogFooter>
-        <Button type="submit" disabled={submitting || !departmentId}>{submitting ? "Saving…" : "Save"}</Button>
+        <Button type="submit" disabled={submitting}>{submitting ? "Saving…" : "Save"}</Button>
       </DialogFooter>
     </form>
   );
