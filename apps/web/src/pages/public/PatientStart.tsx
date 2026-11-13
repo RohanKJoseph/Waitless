@@ -1,24 +1,43 @@
 import { ArrowRight, CalendarPlus, Phone, User } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/context/auth-context";
 
 export function PatientStartPage() {
+  const { startPatientSession, status, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  function onSubmit(event: FormEvent) {
+  if (status === "authenticated" && user?.role === "PATIENT") {
+    return <Navigate to="/patient" replace />;
+  }
+  if (status === "authenticated" && user && user.role !== "PATIENT") {
+    return <Navigate to="/admin" replace />;
+  }
+
+  async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    // Phase 3 replaces this with POST /patients/session.
-    toast.info("Patient sessions arrive in the next phase", {
-      description: "For now, browse the portal with sample data.",
-    });
-    navigate("/patient");
+    setSubmitting(true);
+    try {
+      const profile = await startPatientSession(fullName, phone);
+      toast.success(`Welcome, ${profile.fullName}`);
+      const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
+      navigate(from && from.startsWith("/patient") ? from : "/patient", { replace: true });
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "Unable to start session";
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -96,9 +115,9 @@ export function PatientStartPage() {
               </p>
             </div>
 
-            <Button type="submit" size="lg" className="w-full">
+            <Button type="submit" size="lg" className="w-full" disabled={submitting}>
               <CalendarPlus className="size-4" />
-              Continue to booking
+              {submitting ? "Starting session…" : "Continue to booking"}
               <ArrowRight className="size-4" />
             </Button>
           </form>

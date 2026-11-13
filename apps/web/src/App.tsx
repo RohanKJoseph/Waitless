@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminLayout } from "@/layouts/AdminLayout";
 import { PatientLayout } from "@/layouts/PatientLayout";
 import { PublicLayout } from "@/layouts/PublicLayout";
@@ -20,11 +21,6 @@ import { LoginPage } from "@/pages/public/Login";
 import { NotFoundPage } from "@/pages/public/NotFound";
 import { PatientStartPage } from "@/pages/public/PatientStart";
 
-/**
- * Route protection is deliberately absent until Phase 3. When auth lands,
- * PatientLayout and AdminLayout each gain a guard wrapper here — no page
- * component needs to change.
- */
 export function App() {
   return (
     <Routes>
@@ -34,23 +30,27 @@ export function App() {
         <Route path="login" element={<LoginPage />} />
       </Route>
 
-      <Route path="patient" element={<PatientLayout />}>
-        <Route index element={<PatientHomePage />} />
-        <Route path="book" element={<BookAppointmentPage />} />
-        <Route path="appointments" element={<MyAppointmentsPage />} />
-        <Route path="queue" element={<QueueStatusPage />} />
-        <Route path="swaps" element={<SwapRequestsPage />} />
+      <Route element={<ProtectedRoute roles={["PATIENT"]} />}>
+        <Route path="patient" element={<PatientLayout />}>
+          <Route index element={<PatientHomePage />} />
+          <Route path="book" element={<BookAppointmentPage />} />
+          <Route path="appointments" element={<MyAppointmentsPage />} />
+          <Route path="queue" element={<QueueStatusPage />} />
+          <Route path="swaps" element={<SwapRequestsPage />} />
+        </Route>
       </Route>
 
-      <Route path="admin" element={<AdminLayout />}>
-        <Route index element={<AdminDashboardPage />} />
-        <Route path="appointments" element={<AdminAppointmentsPage />} />
-        <Route path="queue" element={<QueueManagementPage />} />
-        <Route path="doctors" element={<DoctorsPage />} />
-        <Route path="departments" element={<DepartmentsPage />} />
-        <Route path="patients" element={<PatientsPage />} />
-        <Route path="swaps" element={<AdminSwapsPage />} />
-        <Route path="settings" element={<SettingsPage />} />
+      <Route element={<ProtectedRoute roles={["ADMIN", "STAFF"]} />}>
+        <Route path="admin" element={<AdminLayout />}>
+          <Route index element={<AdminDashboardPage />} />
+          <Route path="appointments" element={<AdminAppointmentsPage />} />
+          <Route path="queue" element={<QueueManagementPage />} />
+          <Route path="doctors" element={<DoctorsPage />} />
+          <Route path="departments" element={<DepartmentsPage />} />
+          <Route path="patients" element={<PatientsPage />} />
+          <Route path="swaps" element={<AdminSwapsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+        </Route>
       </Route>
 
       <Route path="book" element={<Navigate to="/patient/book" replace />} />

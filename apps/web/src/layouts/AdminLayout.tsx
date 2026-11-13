@@ -1,16 +1,19 @@
 import {
+  Building2,
   CalendarDays,
   LayoutDashboard,
   ListOrdered,
+  LogOut,
   Repeat2,
   Settings,
   Stethoscope,
   Users,
-  Building2,
 } from "lucide-react";
-import { NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { Brand } from "@/components/shared/brand";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/auth-context";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -25,6 +28,15 @@ const NAV = [
 ];
 
 export function AdminLayout() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  async function onLogout() {
+    await logout();
+    toast.success("Signed out");
+    navigate("/login", { replace: true });
+  }
+
   return (
     <div className="min-h-dvh bg-muted/30">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r bg-card lg:flex">
@@ -51,9 +63,9 @@ export function AdminLayout() {
         </nav>
         <div className="border-t p-3">
           <div className="rounded-lg bg-muted/60 p-3">
-            <p className="text-xs font-medium">Demo hospital</p>
+            <p className="text-xs font-medium">{user?.name ?? "Staff"}</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Seeded data · Asia/Kolkata
+              {user?.adminProfile?.designation ?? user?.role ?? "Hospital staff"} · Asia/Kolkata
             </p>
           </div>
         </div>
@@ -67,13 +79,15 @@ export function AdminLayout() {
             </div>
             <div className="hidden items-center gap-2 lg:flex">
               <span className="text-sm text-muted-foreground">Hospital operations</span>
+              {user && <span className="text-sm font-medium">· {user.name}</span>}
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" asChild>
-                <a href="/">Patient app</a>
+                <Link to="/">Patient app</Link>
               </Button>
-              <Button variant="ghost" size="sm" asChild>
-                <a href="/login">Sign out</a>
+              <Button variant="ghost" size="sm" onClick={onLogout}>
+                <LogOut className="size-4" />
+                Sign out
               </Button>
             </div>
           </div>

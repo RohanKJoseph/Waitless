@@ -1,22 +1,44 @@
 import { ArrowLeft, LockKeyhole, ShieldCheck } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/api";
 import { Brand } from "@/components/shared/brand";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/context/auth-context";
 
 export function LoginPage() {
+  const { login, status, user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("admin@waitless.local");
   const [password, setPassword] = useState("Admin@12345");
+  const [submitting, setSubmitting] = useState(false);
 
-  function onSubmit(event: FormEvent) {
+  if (status === "authenticated" && user && user.role !== "PATIENT") {
+    return <Navigate to="/admin" replace />;
+  }
+  if (status === "authenticated" && user?.role === "PATIENT") {
+    return <Navigate to="/patient" replace />;
+  }
+
+  async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    toast.info("Staff sign-in is being wired up", {
-      description: "Authentication lands in the next build phase. Demo credentials are below.",
-    });
+    setSubmitting(true);
+    try {
+      const signedIn = await login(email, password);
+      toast.success(`Welcome, ${signedIn.name}`);
+      const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
+      navigate(from && from.startsWith("/admin") ? from : "/admin", { replace: true });
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "Unable to sign in";
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -69,9 +91,9 @@ export function LoginPage() {
                 />
               </div>
 
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" disabled={submitting}>
                 <LockKeyhole className="size-4" />
-                Sign in
+                {submitting ? "Signing in…" : "Sign in"}
               </Button>
             </form>
 
