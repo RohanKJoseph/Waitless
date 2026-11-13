@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Waitless
 
 Smart hospital appointment, queue and notification platform.
@@ -67,3 +68,6 @@ infra           Docker service configuration
 - **Port already in use** — set `POSTGRES_PORT` / `REDIS_PORT` in `.env` and update `DATABASE_URL` / `REDIS_URL`.
 - **Prisma client missing** — run `pnpm db:generate`.
 - **pnpm blocks build scripts** — packages are allow-listed in `pnpm-workspace.yaml` under `onlyBuiltDependencies`.
+=======
+# Waitless
+>>>>>>> origin/main
