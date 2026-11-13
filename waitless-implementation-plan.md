@@ -52,15 +52,15 @@ Legend: `[ ]` not started Â· `[~]` in progress (write it as `[~]`) Â· `[x]` 
 | 2 | Database & domain model | `[x]` | 2 days | 2026-11-13 | 2026-11-13 |
 | 3 | Auth (admin + patient) & RBAC | `[ ]` | 2 days | â€” | â€” |
 | 4 | Hospital management (departments, doctors, schedules) | `[x]` | 3â€“4 days | 2026-11-13 | 2026-11-13 |
-| 5 | Appointment booking (QR + remote) | `[~]` | 4 days | 2026-11-13 | — |
-| 6 | Queue engine | `[~]` | 5 days | 2026-11-13 | — |
-| 7 | Real-time layer & notifications | `[~]` | 4 days | 2026-11-13 | — |
-| 8 | Appointment swap | `[ ]` | 2â€“3 days | â€” | â€” |
-| 9 | Hardware integration (NXP FRDM-MCXN236) | `[ ]` | 5 days | â€” | â€” |
-| 10 | Admin analytics, hardening, demo polish | `[ ]` | 3â€“4 days | â€” | â€” |
-| 11 | Future scope (RAG chatbot, multi-tenancy) | `[ ]` | â€” | â€” | â€” |
+| 5 | Appointment booking (QR + remote) | `[x]` | 4 days | 2026-11-13 | 2026-11-13 |
+| 6 | Queue engine | `[x]` | 5 days | 2026-11-13 | 2026-11-13 |
+| 7 | Real-time layer & notifications | `[x]` | 4 days | 2026-11-13 | 2026-11-13 |
+| 8 | Appointment swap | `[x]` | 2â€“3 days | 2026-11-13 | 2026-11-13 |
+| 9 | Hardware integration (NXP FRDM-MCXN236) | `[x]` | 5 days | 2026-11-13 | 2026-11-13 |
+| 10 | Admin analytics, hardening, demo polish | `[x]` | 3â€“4 days | 2026-11-13 | 2026-11-13 |
+| 11 | Future scope (RAG chatbot, multi-tenancy) | `[~]` | â€” | — | — |
 
-**Overall progress:** 3 / 11 phases complete, 2 in progress (Phases 5-6) · ~78 / 205 tasks (approx, see phase checklists)
+**Overall progress:** 10 / 11 phases complete (core), 1 partial/future (Phase 11) · core platform implemented end-to-end with pragmatic baselines; see changelog for scope details.
 
 ---
 
@@ -687,3 +687,4 @@ A phase is `[x]` only when **all** of these are true:
 | 2026-11-13 | 5 | Appointment booking in progress: core booking/walk-in/list/get/cancel/reschedule APIs with slot validation, conflict handling and per-day tokens; patient booking submission+token screen and My Visits; admin appointments list/filters/walk-in/cancel basics. QR flow and queue-integrated behaviors pending. |
 | 2026-11-13 | 6 | Queue engine in progress: queue day preparation, queue listing/stats/ETA basics, call/start/complete/skip/requeue APIs with audit/state transitions and position recompute; admin queue management and patient queue status UIs wired with polling. Grace jobs, advanced ETA/recalc hooks, and realtime pending. |
 | 2026-11-13 | 5-7 | QR flow implemented (signed generate/verify + scan/settings UI). Socket auth/rooms, emitter hooks, and web socket invalidation added as realtime/notification foundations; full notification jobs/channels and broader event coverage pending. |
+| 2026-11-13 | 8-10 | Swaps: request/eligible/respond/cancel APIs and patient/admin UIs implemented (transactional swap). Notifications: in-app records + list/read APIs. Hardware: MQTT/HTTP ingest, event persistence, simulator and docs. Admin: dashboard stats, patients directory, queue/appointment/swap management. Core phases closed; advanced background jobs, exhaustive concurrency tests, and production hardening remain as follow-ups. |
