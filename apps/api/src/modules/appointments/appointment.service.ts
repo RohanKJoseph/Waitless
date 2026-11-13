@@ -2,6 +2,7 @@ import { Prisma, type AppointmentStatus } from "@prisma/client";
 import { canCancel, toDayKey, zonedDateTimeToUtc } from "@waitless/shared";
 import { env } from "../../config/env";
 import { prisma } from "../../config/prisma";
+import { socketEmitter } from "../../sockets/emitter";
 import { AppError } from "../../utils/errors";
 import { normalizePhone, safeName } from "../../utils/phone";
 
@@ -117,6 +118,8 @@ export async function createAppointment(auth: AuthCtx, input: { doctorId: string
             dedupeKey: `booking:${appointment.id}`,
           },
         }).catch(() => {});
+        socketEmitter.queueUpdated(appointment.doctorId, { doctorId: appointment.doctorId, serviceDay });
+        socketEmitter.appointmentUpdated(appointment.patientId, { appointmentId: appointment.id, status: appointment.status });
         return appointment;
       });
     } catch (err) {

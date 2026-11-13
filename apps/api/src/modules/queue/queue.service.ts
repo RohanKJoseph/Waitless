@@ -2,6 +2,7 @@ import type { AppointmentStatus, Prisma } from "@prisma/client";
 import { assertTransition, countAhead, toDayKey } from "@waitless/shared";
 import { env } from "../../config/env";
 import { prisma } from "../../config/prisma";
+import { socketEmitter } from "../../sockets/emitter";
 import { AppError } from "../../utils/errors";
 
 const QUEUE_STATUSES: AppointmentStatus[] = ["BOOKED", "WAITING", "NOTIFIED", "CALLED", "IN_CONSULTATION", "DELAYED", "SKIPPED"];
@@ -145,6 +146,8 @@ export async function callPatient(entryId: string, actorUserId: string) {
     await recomputePositions(tx, entry.doctorId, entry.serviceDay);
     return qe;
   });
+  socketEmitter.queueUpdated(updated.doctorId, { doctorId: updated.doctorId, serviceDay: updated.serviceDay });
+  socketEmitter.appointmentUpdated(updated.appointment.patientId, { appointmentId: updated.appointmentId, status: "CALLED" });
   return updated;
 }
 

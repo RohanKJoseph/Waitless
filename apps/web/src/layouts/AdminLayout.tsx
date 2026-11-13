@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Brand } from "@/components/shared/brand";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
+import { useSocket } from "@/hooks/use-socket";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -28,6 +29,7 @@ const NAV = [
 ];
 
 export function AdminLayout() {
+  useSocket();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 

@@ -5,6 +5,7 @@ import { Brand } from "@/components/shared/brand";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
+import { useSocket } from "@/hooks/use-socket";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -16,6 +17,7 @@ const NAV = [
 ];
 
 export function PatientLayout() {
+  useSocket();
   const { patientProfile, logout } = useAuth();
   const navigate = useNavigate();
 
