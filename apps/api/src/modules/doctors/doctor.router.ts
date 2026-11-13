@@ -28,13 +28,13 @@ doctorRouter.get("/", validate(doctorQuerySchema, "query"), async (req, res, nex
       page?: number;
       pageSize?: number;
     };
-    const activeOnly = query.active === true || (query.active === undefined && !query.includeInactive);
+    const includeInactive = query.includeInactive === true || query.active === false;
     const result = await listDoctors({
       departmentId: query.departmentId,
       q: query.q,
       date: query.date,
-      includeInactive: query.includeInactive,
-      activeOnly: query.active === false ? false : activeOnly,
+      includeInactive,
+      activeOnly: query.active === true ? true : !includeInactive,
       page: query.page,
       pageSize: query.pageSize,
     });

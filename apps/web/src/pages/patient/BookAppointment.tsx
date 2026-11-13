@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 type Department = { id: string; name: string; code: string; description: string | null; location: string | null; isActive: boolean; _count?: { doctors: number } };
@@ -93,7 +94,8 @@ export function BookAppointmentPage() {
         <CardContent className="space-y-5">
           {step === 0 && (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {deptsQ.isLoading && <p className="text-sm text-muted-foreground">Loading departments…</p>}
+              {deptsQ.isLoading && Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
+              {!deptsQ.isLoading && (deptsQ.data ?? []).length === 0 && <p className="text-sm text-muted-foreground">No active departments available right now.</p>}
               {(deptsQ.data ?? []).map((dept) => (
                 <button
                   key={dept.id}
@@ -118,7 +120,7 @@ export function BookAppointmentPage() {
                 {selectedDept && <Badge variant="outline">{selectedDept.name}</Badge>}
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                {doctorsQ.isLoading && <p className="text-sm text-muted-foreground">Loading doctors…</p>}
+                {doctorsQ.isLoading && Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}
                 {(doctorsQ.data ?? []).map((doc) => (
                   <button
                     key={doc.id}
@@ -152,7 +154,9 @@ export function BookAppointmentPage() {
                 {selectedDoctor && <Badge variant="outline">{selectedDoctor.fullName}</Badge>}
                 {availabilityQ.data && <Badge variant={availabilityQ.data.isOnDuty ? "success" : "muted"}>{availabilityQ.data.isOnDuty ? "On duty" : "No clinic"}</Badge>}
               </div>
-              {availabilityQ.isLoading ? <p className="text-sm text-muted-foreground">Loading slots…</p> : (
+              {availabilityQ.isLoading ? (
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">{Array.from({ length: 12 }).map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}</div>
+              ) : (
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
                   {(availabilityQ.data?.slots ?? []).map((slot) => {
                     const disabled = slot.isBooked || slot.isPast;

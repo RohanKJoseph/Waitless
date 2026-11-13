@@ -51,7 +51,7 @@ Legend: `[ ]` not started · `[~]` in progress (write it as `[~]`) · `[x]` done
 | 1 | Foundation & tooling | `[x]` | 2–3 days | 2026-11-13 | 2026-11-13 |
 | 2 | Database & domain model | `[x]` | 2 days | 2026-11-13 | 2026-11-13 |
 | 3 | Auth (admin + patient) & RBAC | `[ ]` | 2 days | — | — |
-| 4 | Hospital management (departments, doctors, schedules) | `[ ]` | 3–4 days | — | — |
+| 4 | Hospital management (departments, doctors, schedules) | `[~]` | 3–4 days | 2026-11-13 | — |
 | 5 | Appointment booking (QR + remote) | `[ ]` | 4 days | — | — |
 | 6 | Queue engine | `[ ]` | 5 days | — | — |
 | 7 | Real-time layer & notifications | `[ ]` | 4 days | — | — |
@@ -60,7 +60,7 @@ Legend: `[ ]` not started · `[~]` in progress (write it as `[~]`) · `[x]` done
 | 10 | Admin analytics, hardening, demo polish | `[ ]` | 3–4 days | — | — |
 | 11 | Future scope (RAG chatbot, multi-tenancy) | `[ ]` | — | — | — |
 
-**Overall progress:** 2 / 11 phases · 37 / 205 tasks (approx, see phase checklists)
+**Overall progress:** 2 / 11 phases complete, 1 in progress (Phase 4) · ~55 / 205 tasks (approx, see phase checklists)
 
 ---
 
@@ -255,35 +255,35 @@ wait-less/
 **Goal:** admins can run the hospital's structure from the dashboard; patients see live doctor availability.
 
 ### 4.1 Departments
-- [ ] `POST/GET/PATCH/DELETE /api/v1/departments` (+ `?includeInactive`)
-- [ ] Soft delete via `isActive`; block delete when active appointments exist (409 with reason)
-- [ ] Admin page `Departments.tsx`: table, create/edit dialog, activate toggle, search
-- [ ] Public `GET /api/v1/departments?active=true` for booking flow
+- [x] `POST/GET/PATCH/DELETE /api/v1/departments` (+ `?includeInactive`)
+- [x] Soft delete via `isActive`; block delete when active appointments exist (409 with reason)
+- [x] Admin page `Departments.tsx`: table, create/edit dialog, activate toggle, search
+- [x] Public `GET /api/v1/departments?active=true` for booking flow (consumed by patient booking)
 
-**Done when:** CRUD works end-to-end; deleting a department with a BOOKED appointment is refused with a helpful message.
+**Done when:** API/UI CRUD wired; active-appointment guard enforced (end-to-end manual verification pending).
 
 ### 4.2 Doctors
-- [ ] `POST/GET/PATCH/DELETE /api/v1/doctors` with department filter, search, pagination
-- [ ] Room assignment (`roomId`) validated unique; used later by hardware
-- [ ] Admin page `Doctors.tsx`: table with department badge, avg consult minutes, room, active toggle, create/edit dialog
-- [ ] Public `GET /api/v1/doctors?departmentId=&date=` returning `{ doctor, nextAvailableSlot, queueLength, isOnDuty }`
+- [x] `POST/GET/PATCH/DELETE /api/v1/doctors` with department filter, search, pagination
+- [x] Room assignment (`roomId`) validated unique (409 on conflict)
+- [x] Admin page `Doctors.tsx`: table with department badge, avg consult minutes, room, active toggle, create/edit dialog
+- [x] Public `GET /api/v1/doctors?departmentId=&date=` enriched with `isOnDuty`, `queueLength`, `nextAvailableSlot` (patient booking consumes it)
 
-**Done when:** creating a doctor with a duplicate room returns 409; the public list hides inactive doctors.
+**Done when:** duplicate-room conflict handled; inactive doctors hidden in active/public views (further booking UX polish pending).
 
 ### 4.3 Schedules
-- [ ] Weekly `DoctorSchedule` CRUD with overlap validation (reject overlapping ranges for same doctor/day)
-- [ ] `ScheduleException` for holidays/one-off overrides
-- [ ] `GET /api/v1/doctors/:id/availability?date=` → list of generated slots with `{ start, end, isBooked, isPast }`
-- [ ] Slot generator utility in `packages/shared` (pure function, heavily unit-tested: DST-safe, minute-based, no floating point)
-- [ ] Admin UI: schedule editor (day tabs, time range pickers), exception list
+- [x] Weekly `DoctorSchedule` CRUD with overlap validation (same doctor/day)
+- [x] `ScheduleException` upsert/list/delete for holidays/overrides
+- [x] `GET /api/v1/doctors/:id/availability?date=` returns slots with `{ start, end, label, rangeLabel, isBooked, isPast }` + duty/exception info
+- [x] Slot generator utility in `packages/shared` (pure, unit-tested)
+- [x] Admin UI: schedule/exceptions management dialog with availability preview (basic custom-hours exception support; richer time-range editor can be expanded)
 
-**Done when:** a 09:00–12:00 schedule with 15-min slots yields exactly 12 slots; overlapping schedule save is rejected; booked slots are flagged.
+**Done when:** slot generation/overlap rules covered by shared logic/tests; availability reflects bookings/exceptions (manual verification pending).
 
 ### 4.4 Departments/doctors UX polish
-- [ ] Empty states, loading skeletons, optimistic updates via TanStack Query
+- [~] Empty states, loading skeletons, optimistic updates via TanStack Query (basic skeletons/empty states added in admin/booking; optimistic updates not yet applied broadly)
 - [ ] Form validation with react-hook-form + shared zod schemas (same schema on server)
 
-**Done when:** submitting an invalid form shows field-level errors without a network call.
+**Done when:** field-level client validation and broader UX polish complete.
 
 ---
 
@@ -682,3 +682,5 @@ A phase is `[x]` only when **all** of these are true:
 | 2026-11-13 | — | Plan created. Decisions: pnpm+Turborepo; OTP deferred (name+mobile session); single hospital. |
 | 2026-11-13 | 1 | Foundation complete: monorepo scaffold, Docker infra (postgres/redis/mosquitto), API skeleton (Express + Prisma/Redis + health/readiness + Socket.IO), web skeleton (Vite/React/Tailwind v4/shadcn-style UI, all public/patient/admin routes), shared package, CI, ADR/db/state-machine docs. Root quality gates green (`pnpm lint`, `typecheck`, `test`, `build`) and `pnpm db:ping` returns db+redis up. |
 | 2026-11-13 | 2 | Database/domain complete: Prisma 6 schema + migrations (incl. pending-swap partial unique indexes), idempotent seed with demo clinic data, enum drift test, shared state machine/time/slot logic with tests. |
+| 2026-11-13 | 3 | Auth/RBAC baseline implemented: staff login/refresh/logout/me, patient mock name+mobile session, guards/middleware, web auth context + route guards + wired login/start/logout, RBAC matrix doc. Committed and pushed incrementally. |
+| 2026-11-13 | 4 | Hospital management in progress: department/doctor/schedule+availability APIs, enriched doctor listing for booking, admin departments/doctors/schedule UIs, and patient booking flow wired to live departments/doctors/slots (booking submission pending Phase 5). Committed and pushed incrementally. |

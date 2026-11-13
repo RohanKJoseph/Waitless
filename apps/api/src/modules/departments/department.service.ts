@@ -14,7 +14,11 @@ const ACTIVE_BLOCKING_STATUSES = [
 export async function listDepartments(opts: { includeInactive?: boolean; activeOnly?: boolean; q?: string }) {
   const where: Prisma.DepartmentWhereInput = {};
   if (opts.activeOnly) where.isActive = true;
-  else if (!opts.includeInactive) where.isActive = true;
+  else if (opts.includeInactive) {
+    // no isActive filter
+  } else {
+    where.isActive = true;
+  }
 
   if (opts.q) {
     where.OR = [

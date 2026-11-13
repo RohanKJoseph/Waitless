@@ -19,10 +19,10 @@ export const departmentRouter: Router = Router();
 departmentRouter.get("/", validate(departmentQuerySchema, "query"), async (req, res, next) => {
   try {
     const query = req.query as { includeInactive?: boolean; active?: boolean; q?: string };
-    const activeOnly = query.active === true || (query.active === undefined && !query.includeInactive);
+    const includeInactive = query.includeInactive === true || query.active === false;
     const departments = await listDepartments({
-      includeInactive: query.includeInactive,
-      activeOnly: query.active === false ? false : activeOnly,
+      includeInactive,
+      activeOnly: query.active === true ? true : !includeInactive,
       q: query.q,
     });
     res.json({ data: { departments } });
